@@ -51,9 +51,12 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    final role = SupabaseService.instance.currentProfile?.activeRole ?? AppRole.relawan;
     final pages = [
       _buildHome(),
-      const ActivityHistoryScreen(),
+      // ValueKey berdasarkan role -> memaksa Activity dibuat ulang (initState jalan lagi)
+      // setiap kali peran aktif berganti, supaya datanya selalu sesuai peran terbaru.
+      ActivityHistoryScreen(key: ValueKey('activity_$role')),
       const ChatListScreen(),
       const ProfileScreen(),
     ];

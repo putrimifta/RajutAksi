@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../core/app_theme.dart';
+import '../../models/app_models.dart';
+import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
+import '../event/event_detail_screen.dart';
 
+/// Halaman Activity ini menampilkan data BERBEDA tergantung peran aktif user:
+/// - Relawan   -> daftar event yang sudah didaftar + status pendaftaran
+/// - Organisasi -> daftar event yang sudah dibuat + progres kuota relawan
+/// - Sponsor   -> daftar penawaran sponsor yang sudah diajukan + statusnya
 class ActivityHistoryScreen extends StatefulWidget {
   const ActivityHistoryScreen({super.key});
 
@@ -10,161 +18,432 @@ class ActivityHistoryScreen extends StatefulWidget {
 }
 
 class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
+  late String _role;
   String _filter = 'Semua';
-  final _filters = ['Semua', 'Diikuti', 'Dibuat', 'Disponsori'];
+
+  @override
+  void initState() {
+    super.initState();
+    _role = SupabaseService.instance.currentProfile?.activeRole ?? AppRole.relawan;
+  }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Row(children: [
-                Icon(Icons.public, color: AppColors.primary),
-                SizedBox(width: 6),
-                Text('RajutAksi', style: TextStyle(color: AppColors.primary, fontSize: 20, fontWeight: FontWeight.bold)),
-              ]),
-              const Icon(Icons.search, color: AppColors.textDark),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Text('Riwayat Aktivitas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const Text('Pantau kontribusi dan aksi sosial yang kamu ikuti.', style: TextStyle(color: AppColors.textGrey, fontSize: 12.5)),
-          const SizedBox(height: 14),
-          SizedBox(
-            height: 38,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _filters.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, i) {
-                final f = _filters[i];
-                final selected = f == _filter;
-                return ChoiceChip(
-                  label: Text(f),
-                  selected: selected,
-                  onSelected: (_) => setState(() => _filter = f),
-                  selectedColor: AppColors.primary,
-                  labelStyle: TextStyle(color: selected ? Colors.white : AppColors.textDark),
-                  backgroundColor: AppColors.surface,
-                  side: const BorderSide(color: AppColors.border),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 18),
-          // Data contoh riwayat aktivitas (idealnya diambil dari gabungan
-          // tabel registrations, events milik user, dan sponsorships)
-          _ActivityCard(
-            imageIcon: Icons.forest_outlined,
-            statusBadge: 'Berlangsung',
-            statusColor: AppColors.primary,
-            title: 'Restorasi Mangrove Teluk Jakarta',
-            subtitle: '24 Okt - 10 Nov 2023',
-            progressLabel: 'Progress Aksi: 65%',
-            progressValue: 0.65,
-            trailingLabel: '12/20 Relawan',
-          ),
-          _ActivityCard(
-            imageIcon: Icons.menu_book_outlined,
-            statusBadge: 'Seleksi',
-            statusColor: AppColors.accent,
-            title: 'Edukasi Literasi Digital Desa',
-            subtitle: 'Sukabumi, Jawa Barat',
-            description: 'Pendaftaran ditutup. Tim sedang melakukan kurasi terhadap 150+ calon relawan pengajar.',
-            actionLabel: 'Lihat Status Pendaftaran',
-          ),
-          Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    AppBadge(text: 'DISPONSORI', color: AppColors.primaryLight, textColor: AppColors.primaryDark),
-                    AppBadge(text: 'Selesai', color: AppColors.success),
+                    const Row(children: [
+                      Icon(Icons.public, color: AppColors.primary),
+                      SizedBox(width: 6),
+                      Text('RajutAksi', style: TextStyle(color: AppColors.primary, fontSize: 20, fontWeight: FontWeight.bold)),
+                    ]),
+                    const Icon(Icons.search, color: AppColors.textDark),
                   ],
                 ),
-                const SizedBox(height: 8),
-                const Text('Pangan Sehat untuk Lansia', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    const Text('45 Orang terbantu', style: TextStyle(fontSize: 12, color: AppColors.textGrey)),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Row(children: [Icon(Icons.verified_outlined, size: 14, color: AppColors.primary), SizedBox(width: 4), Text('Laporan Terverifikasi', style: TextStyle(fontSize: 12, color: AppColors.primary))]),
-                    Text('Sertifikat ↓', style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.add_task_outlined, color: AppColors.primary),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Inisiasi: Clean Up Car Free Day', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
-                      const Text('Draft • Terakhir diedit 2 jam lalu', style: TextStyle(fontSize: 11, color: AppColors.textGrey)),
-                      const SizedBox(height: 2),
-                      const Text('LANJUTKAN', style: TextStyle(fontSize: 11.5, color: AppColors.primary, fontWeight: FontWeight.bold)),
-                    ],
+                const SizedBox(height: 16),
+                const Text('Riwayat Aktivitas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(_subtitleForRole(_role), style: const TextStyle(color: AppColors.textGrey, fontSize: 12.5)),
+                const SizedBox(height: 14),
+                SizedBox(
+                  height: 38,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _filtersForRole(_role).length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, i) {
+                      final f = _filtersForRole(_role)[i];
+                      final selected = f == _filter;
+                      return ChoiceChip(
+                        label: Text(f),
+                        selected: selected,
+                        onSelected: (_) => setState(() => _filter = f),
+                        selectedColor: AppColors.primary,
+                        labelStyle: TextStyle(color: selected ? Colors.white : AppColors.textDark),
+                        backgroundColor: AppColors.surface,
+                        side: const BorderSide(color: AppColors.border),
+                      );
+                    },
                   ),
                 ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
+          Expanded(child: _buildBodyForRole(_role)),
         ],
       ),
     );
   }
+
+  String _subtitleForRole(String role) {
+    switch (role) {
+      case AppRole.organisasi:
+        return 'Pantau event yang sudah kamu buat dan progresnya.';
+      case AppRole.sponsor:
+        return 'Pantau status penawaran sponsorship yang kamu ajukan.';
+      default:
+        return 'Pantau kontribusi dan aksi sosial yang kamu ikuti.';
+    }
+  }
+
+  List<String> _filtersForRole(String role) {
+    switch (role) {
+      case AppRole.organisasi:
+        return ['Semua', 'Published', 'Draft', 'Selesai'];
+      case AppRole.sponsor:
+        return ['Semua', 'Pending', 'Diterima', 'Ditolak'];
+      default:
+        return ['Semua', 'Pending', 'Disetujui', 'Selesai'];
+    }
+  }
+
+  Widget _buildBodyForRole(String role) {
+    switch (role) {
+      case AppRole.organisasi:
+        return _OrganizerActivityList(filter: _filter);
+      case AppRole.sponsor:
+        return _SponsorActivityList(filter: _filter);
+      default:
+        return _VolunteerActivityList(filter: _filter);
+    }
+  }
 }
 
+// ---------------------------------------------------------------------------
+// RELAWAN
+// ---------------------------------------------------------------------------
+class _VolunteerActivityList extends StatefulWidget {
+  final String filter;
+  const _VolunteerActivityList({required this.filter});
+
+  @override
+  State<_VolunteerActivityList> createState() => _VolunteerActivityListState();
+}
+
+class _VolunteerActivityListState extends State<_VolunteerActivityList> {
+  late Future<List<Map<String, dynamic>>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = SupabaseService.instance.fetchMyRegisteredEventsDetailed();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: () async => setState(() {
+        _future = SupabaseService.instance.fetchMyRegisteredEventsDetailed();
+      }),
+      child: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _future,
+        builder: (context, snap) {
+          if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+          var items = snap.data!;
+          if (widget.filter != 'Semua') {
+            final target = {'Pending': 'pending', 'Disetujui': 'approved', 'Selesai': 'completed'}[widget.filter];
+            items = items.where((e) => e['status'] == target).toList();
+          }
+          if (items.isEmpty) {
+            return ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+              children: const [
+                Center(
+                  child: Text('Belum ada kegiatan yang kamu ikuti.\nYuk cari kegiatan di halaman Home!',
+                      textAlign: TextAlign.center, style: TextStyle(color: AppColors.textGrey)),
+                ),
+              ],
+            );
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            itemCount: items.length,
+            itemBuilder: (context, i) {
+              final item = items[i];
+              final event = item['event'] as Map<String, dynamic>?;
+              if (event == null) return const SizedBox();
+              final eventItem = EventItem.fromMap(event);
+              final status = item['status'] as String? ?? 'pending';
+              return GestureDetector(
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => EventDetailScreen(eventId: eventItem.id))),
+                child: _ActivityCard(
+                  title: eventItem.title,
+                  subtitleIcon: Icons.calendar_today_outlined,
+                  subtitle: eventItem.eventDate != null ? DateFormat('d MMM y').format(eventItem.eventDate!) : 'Tanggal belum ditentukan',
+                  statusLabel: _statusLabel(status),
+                  statusColor: _statusColor(status),
+                  posterUrl: eventItem.posterUrl,
+                  progressValue: eventItem.progress,
+                  progressLeft: 'Kuota terisi',
+                  progressRight: '${eventItem.filledCount}/${eventItem.quota} Relawan',
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  String _statusLabel(String s) {
+    switch (s) {
+      case 'approved':
+        return 'Disetujui';
+      case 'completed':
+        return 'Selesai';
+      case 'rejected':
+        return 'Ditolak';
+      default:
+        return 'Menunggu';
+    }
+  }
+
+  Color _statusColor(String s) {
+    switch (s) {
+      case 'approved':
+        return AppColors.primary;
+      case 'completed':
+        return AppColors.success;
+      case 'rejected':
+        return AppColors.danger;
+      default:
+        return AppColors.accent;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// ORGANISASI
+// ---------------------------------------------------------------------------
+class _OrganizerActivityList extends StatefulWidget {
+  final String filter;
+  const _OrganizerActivityList({required this.filter});
+
+  @override
+  State<_OrganizerActivityList> createState() => _OrganizerActivityListState();
+}
+
+class _OrganizerActivityListState extends State<_OrganizerActivityList> {
+  late Future<List<EventItem>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    final uid = SupabaseService.instance.authUser?.id;
+    _future = SupabaseService.instance.fetchEvents(organizerId: uid);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: () async => setState(() {
+        final uid = SupabaseService.instance.authUser?.id;
+        _future = SupabaseService.instance.fetchEvents(organizerId: uid);
+      }),
+      child: FutureBuilder<List<EventItem>>(
+        future: _future,
+        builder: (context, snap) {
+          if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+          var items = snap.data!;
+          if (widget.filter != 'Semua') {
+            final target = {'Published': 'published', 'Draft': 'draft', 'Selesai': 'done'}[widget.filter];
+            items = items.where((e) => e.status == target).toList();
+          }
+          if (items.isEmpty) {
+            return ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+              children: const [
+                Center(
+                  child: Text('Belum ada event yang kamu buat.\nYuk buat event pertamamu dari halaman Home!',
+                      textAlign: TextAlign.center, style: TextStyle(color: AppColors.textGrey)),
+                ),
+              ],
+            );
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            itemCount: items.length,
+            itemBuilder: (context, i) {
+              final e = items[i];
+              return GestureDetector(
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => EventDetailScreen(eventId: e.id))),
+                child: _ActivityCard(
+                  title: e.title,
+                  subtitleIcon: Icons.calendar_today_outlined,
+                  subtitle: e.eventDate != null ? DateFormat('d MMM y').format(e.eventDate!) : 'Belum dijadwalkan',
+                  statusLabel: _statusLabel(e.status),
+                  statusColor: _statusColor(e.status),
+                  posterUrl: e.posterUrl,
+                  progressValue: e.progress,
+                  progressLeft: 'Kuota terisi',
+                  progressRight: '${e.filledCount}/${e.quota} Relawan',
+                  extraLine: e.needSponsor ? 'Dana: ${formatRupiah(e.collectedFunding)} / ${formatRupiah(e.targetFunding)}' : null,
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  String _statusLabel(String s) {
+    switch (s) {
+      case 'draft':
+        return 'Draft';
+      case 'done':
+        return 'Selesai';
+      case 'ongoing':
+        return 'Berlangsung';
+      default:
+        return 'Published';
+    }
+  }
+
+  Color _statusColor(String s) {
+    switch (s) {
+      case 'draft':
+        return AppColors.textGrey;
+      case 'done':
+        return AppColors.success;
+      default:
+        return AppColors.primary;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// SPONSOR
+// ---------------------------------------------------------------------------
+class _SponsorActivityList extends StatefulWidget {
+  final String filter;
+  const _SponsorActivityList({required this.filter});
+
+  @override
+  State<_SponsorActivityList> createState() => _SponsorActivityListState();
+}
+
+class _SponsorActivityListState extends State<_SponsorActivityList> {
+  late Future<List<Map<String, dynamic>>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = SupabaseService.instance.fetchMySponsorshipsDetailed();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: () async => setState(() {
+        _future = SupabaseService.instance.fetchMySponsorshipsDetailed();
+      }),
+      child: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _future,
+        builder: (context, snap) {
+          if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+          var items = snap.data!;
+          if (widget.filter != 'Semua') {
+            final target = {'Pending': 'pending', 'Diterima': 'accepted', 'Ditolak': 'rejected'}[widget.filter];
+            items = items.where((e) => e['status'] == target).toList();
+          }
+          if (items.isEmpty) {
+            return ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+              children: const [
+                Center(
+                  child: Text('Belum ada penawaran sponsor yang kamu ajukan.\nCari proyek yang butuh sponsor di halaman Home!',
+                      textAlign: TextAlign.center, style: TextStyle(color: AppColors.textGrey)),
+                ),
+              ],
+            );
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            itemCount: items.length,
+            itemBuilder: (context, i) {
+              final item = items[i];
+              final event = item['event'] as Map<String, dynamic>?;
+              if (event == null) return const SizedBox();
+              final eventItem = EventItem.fromMap(event);
+              final status = item['status'] as String? ?? 'pending';
+              final amount = (item['amount'] ?? 0).toDouble();
+              return GestureDetector(
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => EventDetailScreen(eventId: eventItem.id))),
+                child: _ActivityCard(
+                  title: eventItem.title,
+                  subtitleIcon: Icons.savings_outlined,
+                  subtitle: 'Penawaran: ${formatRupiah(amount)}',
+                  statusLabel: _statusLabel(status),
+                  statusColor: _statusColor(status),
+                  posterUrl: eventItem.posterUrl,
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  String _statusLabel(String s) {
+    switch (s) {
+      case 'accepted':
+        return 'Diterima';
+      case 'rejected':
+        return 'Ditolak';
+      default:
+        return 'Menunggu';
+    }
+  }
+
+  Color _statusColor(String s) {
+    switch (s) {
+      case 'accepted':
+        return AppColors.success;
+      case 'rejected':
+        return AppColors.danger;
+      default:
+        return AppColors.accent;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// KARTU AKTIVITAS (dipakai bersama oleh ketiga peran)
+// ---------------------------------------------------------------------------
 class _ActivityCard extends StatelessWidget {
-  final IconData imageIcon;
-  final String statusBadge;
-  final Color statusColor;
   final String title;
+  final IconData subtitleIcon;
   final String subtitle;
-  final String? description;
-  final String? progressLabel;
+  final String statusLabel;
+  final Color statusColor;
+  final String? posterUrl;
   final double? progressValue;
-  final String? trailingLabel;
-  final String? actionLabel;
+  final String? progressLeft;
+  final String? progressRight;
+  final String? extraLine;
 
   const _ActivityCard({
-    required this.imageIcon,
-    required this.statusBadge,
-    required this.statusColor,
     required this.title,
+    required this.subtitleIcon,
     required this.subtitle,
-    this.description,
-    this.progressLabel,
+    required this.statusLabel,
+    required this.statusColor,
+    this.posterUrl,
     this.progressValue,
-    this.trailingLabel,
-    this.actionLabel,
+    this.progressLeft,
+    this.progressRight,
+    this.extraLine,
   });
 
   @override
@@ -177,13 +456,14 @@ class _ActivityCard extends StatelessWidget {
         children: [
           Stack(
             children: [
-              Container(
-                height: 130,
-                width: double.infinity,
-                decoration: const BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
-                child: Icon(imageIcon, size: 40, color: AppColors.primary),
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                child: posterUrl != null
+                    ? Image.network(posterUrl!, height: 120, width: double.infinity, fit: BoxFit.cover)
+                    : Container(height: 120, width: double.infinity, color: AppColors.primaryLight,
+                        child: const Icon(Icons.image_outlined, size: 32, color: AppColors.primary)),
               ),
-              Positioned(top: 10, left: 10, child: AppBadge(text: statusBadge, color: statusColor)),
+              Positioned(top: 10, left: 10, child: AppBadge(text: statusLabel, color: statusColor)),
             ],
           ),
           Padding(
@@ -191,21 +471,16 @@ class _ActivityCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
-                  ],
-                ),
+                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                 const SizedBox(height: 4),
                 Row(children: [
-                  const Icon(Icons.calendar_today_outlined, size: 12, color: AppColors.textGrey),
+                  Icon(subtitleIcon, size: 12, color: AppColors.textGrey),
                   const SizedBox(width: 4),
-                  Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textGrey)),
+                  Expanded(child: Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textGrey))),
                 ]),
-                if (description != null) ...[
-                  const SizedBox(height: 8),
-                  Text(description!, style: const TextStyle(fontSize: 12.5, color: AppColors.textGrey)),
+                if (extraLine != null) ...[
+                  const SizedBox(height: 4),
+                  Text(extraLine!, style: const TextStyle(fontSize: 12, color: AppColors.textGrey)),
                 ],
                 if (progressValue != null) ...[
                   const SizedBox(height: 12),
@@ -214,16 +489,9 @@ class _ActivityCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(progressLabel ?? '', style: const TextStyle(fontSize: 12, color: AppColors.textGrey)),
-                      Text(trailingLabel ?? '', style: const TextStyle(fontSize: 12, color: AppColors.textGrey)),
+                      Text(progressLeft ?? '', style: const TextStyle(fontSize: 12, color: AppColors.textGrey)),
+                      Text(progressRight ?? '', style: const TextStyle(fontSize: 12, color: AppColors.textGrey)),
                     ],
-                  ),
-                ],
-                if (actionLabel != null) ...[
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(onPressed: () {}, child: Text(actionLabel!)),
                   ),
                 ],
               ],

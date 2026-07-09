@@ -174,6 +174,28 @@ class SupabaseService extends ChangeNotifier {
     return (data as List).map((e) => RegistrationItem.fromMap(e)).toList();
   }
 
+  /// Riwayat aktivitas Relawan: event yang sudah didaftar, lengkap dengan status pendaftaran
+  Future<List<Map<String, dynamic>>> fetchMyRegisteredEventsDetailed() async {
+    final uid = authUser!.id;
+    final data = await _client
+        .from('registrations')
+        .select('*, event:events(*, organizer:profiles(full_name, avatar_url))')
+        .eq('volunteer_id', uid)
+        .order('registered_at', ascending: false);
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  /// Riwayat aktivitas Sponsor: penawaran sponsor yang sudah diajukan, lengkap data event-nya
+  Future<List<Map<String, dynamic>>> fetchMySponsorshipsDetailed() async {
+    final uid = authUser!.id;
+    final data = await _client
+        .from('sponsorships')
+        .select('*, event:events(*, organizer:profiles(full_name, avatar_url))')
+        .eq('sponsor_id', uid)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(data);
+  }
+
   // ---------------- SPONSORSHIP ----------------
 
   Future<void> submitSponsorshipProposal({
