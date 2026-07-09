@@ -1,5 +1,9 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
 import '../../core/app_theme.dart';
+import '../../core/supabase_config.dart';
 import '../../services/supabase_service.dart';
 
 class CreateEventScreen extends StatefulWidget {
@@ -18,6 +22,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   double _quota = 20;
   bool _needSponsor = true;
   bool _loading = false;
+  Uint8List? _posterBytes;
+  bool _uploadingPoster = false;
 
   final _sdgOptions = {
     'SDG 1': 'Sosial',
@@ -26,6 +32,15 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     'SDG 3': 'Kesehatan',
   };
   String? _selectedSdg;
+
+  final _picker = ImagePicker();
+
+  Future<void> _pickPoster() async {
+    final picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
+    setState(() => _posterBytes = bytes);
+  }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -49,6 +64,17 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
     setState(() => _loading = true);
     try {
+      String? posterUrl;
+      if (_posterBytes != null) {
+        setState(() => _uploadingPoster = true);
+        final fileName = '${const Uuid().v4()}.jpg';
+        posterUrl = await SupabaseService.instance.uploadFile(
+          bucket: SupabaseConfig.posterBucket,
+          path: fileName,
+          bytes: _posterBytes!,
+        );
+        setState(() => _uploadingPoster = false);
+      }
       await SupabaseService.instance.createEvent(
         title: _titleCtrl.text.trim(),
         description: _descCtrl.text.trim(),
@@ -58,12 +84,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         location: _locationCtrl.text.trim().isEmpty ? 'Lokasi belum ditentukan' : _locationCtrl.text.trim(),
         quota: _quota.round(),
         needSponsor: _needSponsor,
+        posterUrl: posterUrl,
         asDraft: asDraft,
       );
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal membuat event, coba lagi.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membuat event: $e')));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -98,23 +125,46 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 decoration: const InputDecoration(hintText: 'Ceritakan detail aksi, tujuan, dan apa yang akan dilakukan para relawan...'),
               ),
               const SizedBox(height: 16),
-              Container(
-                height: 140,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.add_a_photo_outlined, color: AppColors.primary),
-                      SizedBox(height: 6),
-                      Text('Unggah Poster Event', style: TextStyle(color: AppColors.primaryDark, fontWeight: FontWeight.w600)),
-                    ],
+              GestureDetector(
+                onTap: _pickPoster,
+                child: Container(
+                  height: 160,
+                  width: double.infinity,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border),
                   ),
+                  child: _posterBytes != null
+                      ? Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.memory(_posterBytes!, fit: BoxFit.cover),
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: CircleAvatar(
+                                radius: 16,
+                                backgroundColor: Colors.black54,
+                                child: IconButton(
+                                  icon: const Icon(Icons.edit, size: 16, color: Colors.white),
+                                  onPressed: _pickPoster,
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : const Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.add_a_photo_outlined, color: AppColors.primary),
+                              SizedBox(height: 6),
+                              Text('Unggah Poster Event', style: TextStyle(color: AppColors.primaryDark, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -189,7 +239,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               ElevatedButton.icon(
                 onPressed: _loading ? null : () => _submit(asDraft: false),
                 icon: const Icon(Icons.send, size: 18),
-                label: Text(_loading ? 'Memublikasikan...' : 'Publikasikan Event'),
+                label: Text(_uploadingPoster ? 'Mengunggah foto...' : (_loading ? 'Memublikasikan...' : 'Publikasikan Event')),
               ),
               const SizedBox(height: 10),
               Center(

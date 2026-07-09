@@ -25,43 +25,26 @@ class SupabaseService extends ChangeNotifier {
 
   /// Registrasi dengan dukungan MULTI-ROLE: [roles] bisa berisi lebih dari 1
   /// nilai dari AppRole (relawan, organisasi, sponsor).
- Future<void> signUp({
-  required String fullName,
-  required String email,
-  required String password,
-  required List<String> roles,
-}) async {
-  final res = await _client.auth.signUp(
-    email: email,
-    password: password,
-  );
-
-  final userId = res.user?.id;
-
-  if (userId == null) {
-    throw Exception('Registrasi gagal.');
+  Future<void> signUp({
+    required String fullName,
+    required String email,
+    required String password,
+    required List<String> roles,
+  }) async {
+    final res = await _client.auth.signUp(email: email, password: password);
+    final userId = res.user?.id;
+    if (userId == null) {
+      throw Exception('Registrasi gagal, coba lagi.');
+    }
+    await _client.from('profiles').insert({
+      'id': userId,
+      'full_name': fullName,
+      'email': email,
+      'roles': roles,
+      'active_role': roles.first,
+    });
+    await loadCurrentProfile();
   }
-
-  // ===== CEK APAKAH SESSION SUDAH ADA =====
-  final session = _client.auth.currentSession;
-
-  if (session == null) {
-    throw Exception(
-      'Session belum aktif setelah sign up. '
-      'User berhasil dibuat di auth.users tetapi belum login.',
-    );
-  }
-
-  await _client.from('profiles').insert({
-    'id': userId,
-    'full_name': fullName,
-    'email': email,
-    'roles': roles,
-    'active_role': roles.first,
-  });
-
-  await loadCurrentProfile();
-}
 
   Future<void> signOut() async {
     await _client.auth.signOut();
