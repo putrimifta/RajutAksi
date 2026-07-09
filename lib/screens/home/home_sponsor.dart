@@ -4,6 +4,7 @@ import '../../models/app_models.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
 import '../event/event_detail_screen.dart';
+import 'sponsor_list_screen.dart';
 
 class HomeSponsorScreen extends StatefulWidget {
   const HomeSponsorScreen({super.key});
@@ -96,9 +97,20 @@ class _HomeSponsorScreenState extends State<HomeSponsorScreen> {
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text('Proyek Butuh Sponsor', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                Text('Lihat Semua', style: TextStyle(color: AppColors.primary, fontSize: 13)),
+              children: [
+                const Text('Proyek Butuh Sponsor', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                InkWell(
+                  borderRadius: BorderRadius.circular(6),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SponsorListScreen()),
+                    );
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    child: Text('Lihat Semua', style: TextStyle(color: AppColors.primary, fontSize: 13)),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -113,7 +125,9 @@ class _HomeSponsorScreenState extends State<HomeSponsorScreen> {
                     child: Text('Belum ada proyek yang membutuhkan sponsor saat ini.', style: TextStyle(color: AppColors.textGrey)),
                   );
                 }
-                return Column(children: events.map((e) => _SponsorProjectCard(event: e)).toList());
+                // Tampilkan preview maksimal 3 di Home, sisanya lihat di "Lihat Semua"
+                final preview = events.take(3).toList();
+                return Column(children: preview.map((e) => SponsorProjectCard(event: e)).toList());
               },
             ),
             const SizedBox(height: 8),
@@ -158,9 +172,9 @@ class _HomeSponsorScreenState extends State<HomeSponsorScreen> {
   }
 }
 
-class _SponsorProjectCard extends StatelessWidget {
+class SponsorProjectCard extends StatelessWidget {
   final EventItem event;
-  const _SponsorProjectCard({required this.event});
+  const SponsorProjectCard({super.key, required this.event});
 
   @override
   Widget build(BuildContext context) {

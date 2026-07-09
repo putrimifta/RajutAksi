@@ -6,6 +6,7 @@ import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
 import '../event/create_event_screen.dart';
 import '../event/event_detail_screen.dart';
+import '../event/my_events_screen.dart';
 
 class HomeOrganizationScreen extends StatefulWidget {
   const HomeOrganizationScreen({super.key});
@@ -107,9 +108,24 @@ class _HomeOrganizationScreenState extends State<HomeOrganizationScreen> {
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text('Event yang Dikelola', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                Row(children: [Text('Lihat Semua', style: TextStyle(color: AppColors.primary, fontSize: 13)), Icon(Icons.arrow_forward, size: 14, color: AppColors.primary)]),
+              children: [
+                const Text('Event yang Dikelola', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const MyEventsScreen()),
+                    );
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                    child: Row(children: [
+                      Text('Lihat Semua', style: TextStyle(color: AppColors.primary, fontSize: 13)),
+                      SizedBox(width: 2),
+                      Icon(Icons.arrow_forward, size: 14, color: AppColors.primary),
+                    ]),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),

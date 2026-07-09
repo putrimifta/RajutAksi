@@ -5,6 +5,7 @@ import '../../models/app_models.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
 import '../event/event_detail_screen.dart';
+import '../event/all_events_screen.dart';
 
 class HomeVolunteerScreen extends StatefulWidget {
   const HomeVolunteerScreen({super.key});
@@ -128,9 +129,20 @@ class _HomeVolunteerScreenState extends State<HomeVolunteerScreen> {
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text('Unggulan Untukmu', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                Text('Lihat Semua', style: TextStyle(color: AppColors.primary, fontSize: 13)),
+              children: [
+                const Text('Unggulan Untukmu', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AllEventsScreen()),
+                    );
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                    child: Text('Lihat Semua', style: TextStyle(color: AppColors.primary, fontSize: 13)),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
