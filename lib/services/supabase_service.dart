@@ -240,8 +240,8 @@ class SupabaseService extends ChangeNotifier {
     final uid = authUser!.id;
     final data = await _client
         .from('conversations')
-        .select('*, user_a:profiles!conversations_user_a_fkey(full_name, avatar_url), '
-            'user_b:profiles!conversations_user_b_fkey(full_name, avatar_url)')
+        .select('*, user_a:profiles!conversations_user_a_fkey(id, full_name, avatar_url), '
+            'user_b:profiles!conversations_user_b_fkey(id, full_name, avatar_url)')
         .or('user_a.eq.$uid,user_b.eq.$uid')
         .order('last_message_at', ascending: false);
     return List<Map<String, dynamic>>.from(data);

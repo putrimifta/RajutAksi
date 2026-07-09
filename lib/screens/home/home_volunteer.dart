@@ -32,6 +32,16 @@ class _HomeVolunteerScreenState extends State<HomeVolunteerScreen> {
     });
   }
 
+  List<EventItem> _applySearch(List<EventItem> events) {
+    if (_searchQuery.isEmpty) return events;
+    return events.where((e) {
+      final title = e.title.toLowerCase();
+      final location = e.location.toLowerCase();
+      final category = e.categoryLabel.toLowerCase();
+      return title.contains(_searchQuery) || location.contains(_searchQuery) || category.contains(_searchQuery);
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final profile = SupabaseService.instance.currentProfile;
@@ -59,7 +69,7 @@ class _HomeVolunteerScreenState extends State<HomeVolunteerScreen> {
             FutureBuilder<List<EventItem>>(
               future: _future,
               builder: (context, snap) {
-                final count = snap.data?.length ?? 0;
+                final count = _applySearch(snap.data ?? []).length;
                 return RichText(
                   text: TextSpan(
                     style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textDark),
@@ -132,9 +142,14 @@ class _HomeVolunteerScreenState extends State<HomeVolunteerScreen> {
                   if (!snap.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  final events = snap.data!;
+                  final events = _applySearch(snap.data!);
                   if (events.isEmpty) {
-                    return const Center(child: Text('Belum ada kegiatan di kategori ini', style: TextStyle(color: AppColors.textGrey)));
+                    return Center(
+                      child: Text(
+                        _searchQuery.isNotEmpty ? 'Tidak ada hasil untuk "$_searchQuery"' : 'Belum ada kegiatan di kategori ini',
+                        style: const TextStyle(color: AppColors.textGrey),
+                      ),
+                    );
                   }
                   return ListView.separated(
                     scrollDirection: Axis.horizontal,
@@ -151,7 +166,7 @@ class _HomeVolunteerScreenState extends State<HomeVolunteerScreen> {
             FutureBuilder<List<EventItem>>(
               future: _future,
               builder: (context, snap) {
-                final events = snap.data ?? [];
+                final events = _applySearch(snap.data ?? []);
                 final upcoming = events.isNotEmpty ? events.first : null;
                 if (upcoming == null) return const SizedBox();
                 return Container(
