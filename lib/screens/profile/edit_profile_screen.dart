@@ -1,5 +1,9 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
 import '../../core/app_theme.dart';
+import '../../core/supabase_config.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
 
@@ -17,6 +21,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _bioCtrl;
   final List<String> _interests = [];
   bool _loading = false;
+  Uint8List? _newAvatarBytes;
+  bool _uploadingAvatar = false;
+  final _picker = ImagePicker();
 
   final _availableInterests = [
     'Tanpa Kemiskinan',
@@ -38,14 +45,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _interests.addAll(p?.interests ?? []);
   }
 
+  Future<void> _pickAvatar() async {
+    final picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80, maxWidth: 800);
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
+    setState(() => _newAvatarBytes = bytes);
+  }
+
   Future<void> _save() async {
     setState(() => _loading = true);
     try {
+      String? avatarUrl;
+      if (_newAvatarBytes != null) {
+        setState(() => _uploadingAvatar = true);
+        final fileName = '${const Uuid().v4()}.jpg';
+        avatarUrl = await SupabaseService.instance.uploadFile(
+          bucket: SupabaseConfig.avatarBucket,
+          path: fileName,
+          bytes: _newAvatarBytes!,
+        );
+        setState(() => _uploadingAvatar = false);
+      }
       await SupabaseService.instance.updateProfile(
         fullName: _nameCtrl.text.trim(),
         phone: _phoneCtrl.text.trim(),
         bio: _bioCtrl.text.trim(),
         interests: _interests,
+        avatarUrl: avatarUrl,
       );
       if (mounted) Navigator.of(context).pop();
     } finally {
@@ -75,19 +101,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             children: [
               const SizedBox(height: 10),
               Center(
-                child: Stack(
-                  children: [
-                    AppAvatar(url: profile?.avatarUrl, name: profile?.fullName ?? '?', radius: 46),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: CircleAvatar(radius: 15, backgroundColor: AppColors.primary, child: const Icon(Icons.camera_alt, size: 15, color: Colors.white)),
-                    ),
-                  ],
+                child: GestureDetector(
+                  onTap: _pickAvatar,
+                  child: Stack(
+                    children: [
+                      _newAvatarBytes != null
+                          ? CircleAvatar(radius: 46, backgroundImage: MemoryImage(_newAvatarBytes!))
+                          : AppAvatar(url: profile?.avatarUrl, name: profile?.fullName ?? '?', radius: 46),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: CircleAvatar(radius: 15, backgroundColor: AppColors.primary, child: const Icon(Icons.camera_alt, size: 15, color: Colors.white)),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
-              const Center(child: Text('Ubah Foto Profil', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600))),
+              Center(
+                child: GestureDetector(
+                  onTap: _pickAvatar,
+                  child: Text(
+                    _uploadingAvatar ? 'Mengunggah...' : 'Ubah Foto Profil',
+                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
               const SizedBox(height: 20),
               const Text('Nama Lengkap', style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),

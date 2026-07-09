@@ -168,6 +168,21 @@ class SupabaseService extends ChangeNotifier {
     });
   }
 
+  /// Dipakai Organisasi: melihat daftar relawan yang mendaftar ke event miliknya
+  Future<List<Map<String, dynamic>>> fetchEventRegistrations(String eventId) async {
+    final data = await _client
+        .from('registrations')
+        .select('*, volunteer:profiles(id, full_name, email, avatar_url, phone)')
+        .eq('event_id', eventId)
+        .order('registered_at', ascending: false);
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  /// Dipakai Organisasi: menyetujui / menolak / menandai selesai seorang relawan
+  Future<void> updateRegistrationStatus(String registrationId, String status) async {
+    await _client.from('registrations').update({'status': status}).eq('id', registrationId);
+  }
+
   Future<List<RegistrationItem>> fetchMyRegistrations() async {
     final uid = authUser!.id;
     final data = await _client.from('registrations').select().eq('volunteer_id', uid);
@@ -230,6 +245,28 @@ class SupabaseService extends ChangeNotifier {
         .or('user_a.eq.$uid,user_b.eq.$uid')
         .order('last_message_at', ascending: false);
     return List<Map<String, dynamic>>.from(data);
+  }
+
+  /// Mencari percakapan yang sudah ada dengan [otherUserId], atau membuat
+  /// yang baru kalau belum pernah ada. Dipakai tombol "Chat Penyelenggara".
+  Future<String> getOrCreateConversation(String otherUserId) async {
+    final uid = authUser!.id;
+    if (uid == otherUserId) {
+      throw Exception('Tidak bisa memulai chat dengan diri sendiri.');
+    }
+    final existing = await _client
+        .from('conversations')
+        .select('id')
+        .or('and(user_a.eq.$uid,user_b.eq.$otherUserId),and(user_a.eq.$otherUserId,user_b.eq.$uid)')
+        .maybeSingle();
+    if (existing != null) return existing['id'].toString();
+
+    final inserted = await _client
+        .from('conversations')
+        .insert({'user_a': uid, 'user_b': otherUserId})
+        .select('id')
+        .single();
+    return inserted['id'].toString();
   }
 
   Future<List<MessageItem>> fetchMessages(String conversationId) async {

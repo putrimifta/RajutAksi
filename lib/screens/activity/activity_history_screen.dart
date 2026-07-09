@@ -5,6 +5,7 @@ import '../../models/app_models.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
 import '../event/event_detail_screen.dart';
+import '../certificate/certificate_screen.dart';
 
 /// Halaman Activity ini menampilkan data BERBEDA tergantung peran aktif user:
 /// - Relawan   -> daftar event yang sudah didaftar + status pendaftaran
@@ -173,6 +174,23 @@ class _VolunteerActivityListState extends State<_VolunteerActivityList> {
               if (event == null) return const SizedBox();
               final eventItem = EventItem.fromMap(event);
               final status = item['status'] as String? ?? 'pending';
+              if (status == 'completed') {
+                final volunteerName = SupabaseService.instance.currentProfile?.fullName ?? 'Relawan';
+                return _ActivityCardWithCertificate(
+                  title: eventItem.title,
+                  subtitle: eventItem.eventDate != null ? DateFormat('d MMM y').format(eventItem.eventDate!) : 'Tanggal belum ditentukan',
+                  posterUrl: eventItem.posterUrl,
+                  onTapCard: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => EventDetailScreen(eventId: eventItem.id))),
+                  onTapCertificate: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => CertificateScreen(
+                      volunteerName: volunteerName,
+                      eventTitle: eventItem.title,
+                      eventDate: eventItem.eventDate,
+                      organizerName: eventItem.organizerName ?? 'RajutAksi',
+                    ),
+                  )),
+                );
+              }
               return GestureDetector(
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => EventDetailScreen(eventId: eventItem.id))),
                 child: _ActivityCard(
@@ -419,8 +437,89 @@ class _SponsorActivityListState extends State<_SponsorActivityList> {
 }
 
 // ---------------------------------------------------------------------------
-// KARTU AKTIVITAS (dipakai bersama oleh ketiga peran)
+// KARTU AKTIVITAS + TOMBOL CETAK SERTIFIKAT (khusus relawan yang statusnya "Selesai")
 // ---------------------------------------------------------------------------
+class _ActivityCardWithCertificate extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String? posterUrl;
+  final VoidCallback onTapCard;
+  final VoidCallback onTapCertificate;
+
+  const _ActivityCardWithCertificate({
+    required this.title,
+    required this.subtitle,
+    this.posterUrl,
+    required this.onTapCard,
+    required this.onTapCertificate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: onTapCard,
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                  child: posterUrl != null
+                      ? Image.network(posterUrl!, height: 120, width: double.infinity, fit: BoxFit.cover)
+                      : Container(height: 120, width: double.infinity, color: AppColors.primaryLight,
+                          child: const Icon(Icons.image_outlined, size: 32, color: AppColors.primary)),
+                ),
+                const Positioned(top: 10, left: 10, child: _SelesaiBadge()),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: onTapCard,
+                  child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                ),
+                const SizedBox(height: 4),
+                Row(children: [
+                  const Icon(Icons.calendar_today_outlined, size: 12, color: AppColors.textGrey),
+                  const SizedBox(width: 4),
+                  Expanded(child: Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textGrey))),
+                ]),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: onTapCertificate,
+                    icon: const Icon(Icons.workspace_premium_outlined, size: 18),
+                    label: const Text('Cetak Sertifikat'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SelesaiBadge extends StatelessWidget {
+  const _SelesaiBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBadge(text: 'Selesai', color: AppColors.success);
+  }
+}
+
+
 class _ActivityCard extends StatelessWidget {
   final String title;
   final IconData subtitleIcon;

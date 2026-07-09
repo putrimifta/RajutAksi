@@ -4,6 +4,8 @@ import '../../models/app_models.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
 import 'sponsorship_form_screen.dart';
+import 'manage_registrations_screen.dart';
+import '../chat/chat_detail_screen.dart';
 
 class EventDetailScreen extends StatefulWidget {
   final String eventId;
@@ -18,6 +20,28 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   late Future<EventItem> _future;
   bool _registering = false;
   bool _registered = false;
+  bool _startingChat = false;
+
+  Future<void> _chatWithOrganizer(EventItem event) async {
+    setState(() => _startingChat = true);
+    try {
+      final conversationId = await SupabaseService.instance.getOrCreateConversation(event.organizerId);
+      if (!mounted) return;
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ChatDetailScreen(
+          conversationId: conversationId,
+          otherName: event.organizerName ?? 'Organisasi',
+          otherAvatar: event.organizerAvatar,
+        ),
+      ));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membuka chat: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _startingChat = false);
+    }
+  }
 
   @override
   void initState() {
@@ -180,11 +204,15 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                                   ],
                                 ),
                               ),
-                              OutlinedButton(
-                                style: OutlinedButton.styleFrom(minimumSize: const Size(80, 36), padding: EdgeInsets.zero),
-                                onPressed: () {},
-                                child: const Text('Profil', style: TextStyle(fontSize: 12)),
-                              ),
+                              if (SupabaseService.instance.authUser?.id != event.organizerId)
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(minimumSize: const Size(90, 36), padding: const EdgeInsets.symmetric(horizontal: 10)),
+                                  onPressed: _startingChat ? null : () => _chatWithOrganizer(event),
+                                  icon: _startingChat
+                                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                                      : const Icon(Icons.chat_bubble_outline, size: 15),
+                                  label: const Text('Chat', style: TextStyle(fontSize: 12)),
+                                ),
                             ],
                           ),
                         ),
@@ -204,27 +232,41 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           ),
                         ]),
                         const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            if (event.needSponsor)
+                        Builder(builder: (context) {
+                          final isOwner = SupabaseService.instance.authUser?.id == event.organizerId;
+                          if (isOwner) {
+                            return SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                                    builder: (_) => ManageRegistrationsScreen(eventId: event.id, eventTitle: event.title))),
+                                icon: const Icon(Icons.groups_outlined, size: 18),
+                                label: const Text('Kelola Relawan'),
+                              ),
+                            );
+                          }
+                          return Row(
+                            children: [
+                              if (event.needSponsor)
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => SponsorshipFormScreen(event: event))),
+                                    icon: const Icon(Icons.workspace_premium_outlined, size: 18),
+                                    label: const Text('Ajukan Sponsor'),
+                                  ),
+                                ),
+                              if (event.needSponsor) const SizedBox(width: 12),
                               Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => SponsorshipFormScreen(event: event))),
-                                  icon: const Icon(Icons.workspace_premium_outlined, size: 18),
-                                  label: const Text('Ajukan Sponsor'),
+                                flex: 2,
+                                child: ElevatedButton.icon(
+                                  onPressed: _registering || _registered ? null : () => _daftarRelawan(event),
+                                  icon: Icon(_registered ? Icons.check : Icons.volunteer_activism_outlined, size: 18),
+                                  label: Text(_registered ? 'Terdaftar' : 'Daftar Relawan'),
                                 ),
                               ),
-                            if (event.needSponsor) const SizedBox(width: 12),
-                            Expanded(
-                              flex: 2,
-                              child: ElevatedButton.icon(
-                                onPressed: _registering || _registered ? null : () => _daftarRelawan(event),
-                                icon: Icon(_registered ? Icons.check : Icons.volunteer_activism_outlined, size: 18),
-                                label: Text(_registered ? 'Terdaftar' : 'Daftar Relawan'),
-                              ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          );
+                        }),
                         const SizedBox(height: 20),
                       ],
                     ),
