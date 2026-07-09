@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../core/app_theme.dart';
 import '../../models/app_models.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
 import '../event/create_event_screen.dart';
-import '../event/event_detail_screen.dart';
+import '../event/all_managed_events_screen.dart';
 
 class HomeOrganizationScreen extends StatefulWidget {
   const HomeOrganizationScreen({super.key});
@@ -107,9 +106,15 @@ class _HomeOrganizationScreenState extends State<HomeOrganizationScreen> {
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text('Event yang Dikelola', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                Row(children: [Text('Lihat Semua', style: TextStyle(color: AppColors.primary, fontSize: 13)), Icon(Icons.arrow_forward, size: 14, color: AppColors.primary)]),
+              children: [
+                const Text('Event yang Dikelola', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AllManagedEventsScreen())),
+                  child: const Row(children: [
+                    Text('Lihat Semua', style: TextStyle(color: AppColors.primary, fontSize: 13)),
+                    Icon(Icons.arrow_forward, size: 14, color: AppColors.primary),
+                  ]),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -124,7 +129,7 @@ class _HomeOrganizationScreenState extends State<HomeOrganizationScreen> {
                     child: Text('Anda belum membuat event. Yuk mulai buat event pertama!', style: TextStyle(color: AppColors.textGrey)),
                   );
                 }
-                return Column(children: events.map((e) => _ManagedEventCard(event: e)).toList());
+                return Column(children: events.map((e) => ManagedEventCard(event: e)).toList());
               },
             ),
             const SizedBox(height: 12),
@@ -188,69 +193,6 @@ class _ActivityRow extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _ManagedEventCard extends StatelessWidget {
-  final EventItem event;
-  const _ManagedEventCard({required this.event});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDraft = event.status == 'draft';
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => EventDetailScreen(eventId: event.id))),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-                child: event.posterUrl != null
-                    ? Image.network(event.posterUrl!, height: 140, width: double.infinity, fit: BoxFit.cover)
-                    : Container(height: 140, color: AppColors.primaryLight, child: const Icon(Icons.image_outlined, size: 36, color: AppColors.primary)),
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: AppBadge(text: isDraft ? 'DRAFT' : 'BERLANGSUNG', color: isDraft ? AppColors.textGrey : AppColors.primaryDark),
-              ),
-            ]),
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppBadge(text: '${event.sdgCategory}: ${event.categoryLabel}', color: AppColors.primaryLight, textColor: AppColors.primaryDark),
-                  const SizedBox(height: 8),
-                  Text(event.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15.5)),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(children: [
-                        const Icon(Icons.people_alt_outlined, size: 14, color: AppColors.textGrey),
-                        const SizedBox(width: 4),
-                        Text('${event.filledCount} Relawan', style: const TextStyle(color: AppColors.textGrey, fontSize: 12)),
-                      ]),
-                      Row(children: [
-                        const Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.textGrey),
-                        const SizedBox(width: 4),
-                        Text(event.eventDate != null ? DateFormat('d MMM y').format(event.eventDate!) : 'TBD',
-                            style: const TextStyle(color: AppColors.textGrey, fontSize: 12)),
-                      ]),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
