@@ -16,6 +16,7 @@ class ChatDetailScreen extends StatefulWidget {
 
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final _msgCtrl = TextEditingController();
+  final _scrollCtrl = ScrollController();
   late Stream<List<Map<String, dynamic>>> _stream;
 
   @override
@@ -66,15 +67,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 stream: _stream,
                 builder: (context, snap) {
                   if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-                  final raw = List<Map<String, dynamic>>.from(snap.data!);
-                  raw.sort((a, b) {
-                    final ta = DateTime.tryParse(a['created_at'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
-                    final tb = DateTime.tryParse(b['created_at'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
-                    return ta.compareTo(tb);
+                  final messages = snap.data!;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (_scrollCtrl.hasClients) {
+                      _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
+                    }
                   });
-                  final messages = raw.reversed.toList();
                   return ListView.builder(
-                    reverse: true,
+                    controller: _scrollCtrl,
                     padding: const EdgeInsets.all(16),
                     itemCount: messages.length,
                     itemBuilder: (context, i) {

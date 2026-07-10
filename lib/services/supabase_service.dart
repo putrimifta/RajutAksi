@@ -211,6 +211,15 @@ class SupabaseService extends ChangeNotifier {
     return List<Map<String, dynamic>>.from(data);
   }
 
+  /// Total nilai sponsorship yang SUDAH DITERIMA (accepted) oleh sponsor ini,
+  /// dipakai untuk kartu "Total Kontribusi Saya" di Home Sponsor.
+  Future<double> fetchMyAcceptedSponsorshipTotal() async {
+    final uid = authUser!.id;
+    final data = await _client.from('sponsorships').select('amount').eq('sponsor_id', uid).eq('status', 'accepted');
+    final list = List<Map<String, dynamic>>.from(data);
+    return list.fold<double>(0, (sum, e) => sum + (e['amount'] ?? 0).toDouble());
+  }
+
   // ---------------- SPONSORSHIP ----------------
 
   Future<void> submitSponsorshipProposal({
@@ -240,8 +249,8 @@ class SupabaseService extends ChangeNotifier {
     final uid = authUser!.id;
     final data = await _client
         .from('conversations')
-        .select('*, user_a:profiles!conversations_user_a_fkey(id, full_name, avatar_url), '
-            'user_b:profiles!conversations_user_b_fkey(id, full_name, avatar_url)')
+        .select('*, user_a:profiles!conversations_user_a_fkey(full_name, avatar_url), '
+            'user_b:profiles!conversations_user_b_fkey(full_name, avatar_url)')
         .or('user_a.eq.$uid,user_b.eq.$uid')
         .order('last_message_at', ascending: false);
     return List<Map<String, dynamic>>.from(data);

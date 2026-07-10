@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../core/app_theme.dart';
 import '../../models/app_models.dart';
 import '../../services/supabase_service.dart';
@@ -216,6 +217,29 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                             ],
                           ),
                         ),
+                        const SizedBox(height: 18),
+                        Row(children: [
+                          const Icon(Icons.calendar_today_outlined, color: AppColors.primary),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  event.eventDate != null
+                                      ? DateFormat("EEEE, d MMMM y", 'id_ID').format(event.eventDate!)
+                                      : 'Tanggal belum ditentukan',
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                                if (event.eventDate != null)
+                                  Text(
+                                    'Pukul ${DateFormat('HH:mm').format(event.eventDate!)} WIB',
+                                    style: const TextStyle(color: AppColors.textGrey, fontSize: 12),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ]),
                         const SizedBox(height: 18),
                         Row(children: [
                           const Icon(Icons.location_on_outlined, color: AppColors.primary),

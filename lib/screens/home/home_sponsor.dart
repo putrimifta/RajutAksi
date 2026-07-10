@@ -4,6 +4,7 @@ import '../../models/app_models.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
 import '../event/event_detail_screen.dart';
+import '../activity/activity_history_screen.dart';
 import 'sponsor_list_screen.dart';
 
 class HomeSponsorScreen extends StatefulWidget {
@@ -15,11 +16,17 @@ class HomeSponsorScreen extends StatefulWidget {
 
 class _HomeSponsorScreenState extends State<HomeSponsorScreen> {
   late Future<List<EventItem>> _future;
+  late Future<double> _myContributionFuture;
 
   @override
   void initState() {
     super.initState();
+    _load();
+  }
+
+  void _load() {
     _future = SupabaseService.instance.fetchEvents(onlyNeedSponsor: true);
+    _myContributionFuture = SupabaseService.instance.fetchMyAcceptedSponsorshipTotal();
   }
 
   @override
@@ -29,9 +36,7 @@ class _HomeSponsorScreenState extends State<HomeSponsorScreen> {
 
     return SafeArea(
       child: RefreshIndicator(
-        onRefresh: () async => setState(() {
-          _future = SupabaseService.instance.fetchEvents(onlyNeedSponsor: true);
-        }),
+        onRefresh: () async => setState(_load),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           children: [
@@ -54,6 +59,9 @@ class _HomeSponsorScreenState extends State<HomeSponsorScreen> {
             Text('Halo, $name!', style: const TextStyle(color: AppColors.textGrey)),
             const Text('Mari wujudkan aksi nyata hari ini.', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 18),
+            // Kartu ini sekarang menampilkan data MILIK SPONSOR YANG SEDANG LOGIN,
+            // bukan angka gabungan semua sponsor (yang sebelumnya membingungkan
+            // karena terlihat seperti pencapaian pribadi padahal bukan).
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(18),
@@ -61,38 +69,41 @@ class _HomeSponsorScreenState extends State<HomeSponsorScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Total Penyaluran', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  const Text('Total Kontribusi Saya', style: TextStyle(color: Colors.white70, fontSize: 13)),
                   const SizedBox(height: 4),
-                  FutureBuilder<List<EventItem>>(
-                    future: _future,
+                  FutureBuilder<double>(
+                    future: _myContributionFuture,
                     builder: (context, snap) {
-                      final total = (snap.data ?? []).fold<double>(0, (p, e) => p + e.collectedFunding);
-                      return Text(formatRupiah(total),
+                      final total = snap.data ?? 0;
+                      return Text(formatRupiahFull(total),
                           style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold));
                     },
                   ),
-                  const SizedBox(height: 4),
-                  const Row(children: [
-                    Icon(Icons.trending_up, color: Colors.white70, size: 16),
-                    SizedBox(width: 4),
-                    Text('+12% bulan ini', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                  ]),
+                  const SizedBox(height: 6),
+                  const Text('Dari penawaran sponsor yang sudah diterima', style: TextStyle(color: Colors.white70, fontSize: 11.5)),
                 ],
               ),
             ),
             const SizedBox(height: 14),
-            FutureBuilder<List<EventItem>>(
-              future: _future,
-              builder: (context, snap) {
-                final count = snap.data?.length ?? 0;
-                return Row(
-                  children: [
-                    Expanded(child: _statCard('Proyek Aktif', '$count', Icons.groups_2_outlined)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _statCard('Dampak SDG', '82%', Icons.verified_outlined)),
-                  ],
-                );
-              },
+            Row(
+              children: [
+                Expanded(
+                  child: FutureBuilder<List<EventItem>>(
+                    future: _future,
+                    builder: (context, snap) {
+                      final count = snap.data?.length ?? 0;
+                      return _statCard('Proyek Butuh Sponsor', '$count', Icons.groups_2_outlined);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ActivityHistoryScreen())),
+                    child: _statCard('Lihat Riwayat Penawaran', 'Activity →', Icons.receipt_long_outlined),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
             Row(
@@ -113,6 +124,11 @@ class _HomeSponsorScreenState extends State<HomeSponsorScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 4),
+            const Text(
+              'Ini daftar kegiatan sosial yang butuh dana sponsor. Ketuk salah satu untuk lihat detail dan ajukan penawaran.',
+              style: TextStyle(color: AppColors.textGrey, fontSize: 12),
+            ),
             const SizedBox(height: 12),
             FutureBuilder<List<EventItem>>(
               future: _future,
@@ -130,26 +146,6 @@ class _HomeSponsorScreenState extends State<HomeSponsorScreen> {
                 return Column(children: preview.map((e) => SponsorProjectCard(event: e)).toList());
               },
             ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(16)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Optimalkan Dampak Anda', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
-                  const SizedBox(height: 4),
-                  const Text('Proyek dengan label "Urgent" membutuhkan pendanaan cepat untuk menjaga keberlanjutan operasional.',
-                      style: TextStyle(color: AppColors.textGrey, fontSize: 12.5)),
-                  const SizedBox(height: 8),
-                  Row(children: const [
-                    Text('Pelajari Kriteria', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
-                    SizedBox(width: 4),
-                    Icon(Icons.arrow_forward, size: 14, color: AppColors.primary),
-                  ]),
-                ],
-              ),
-            ),
           ],
         ),
       ),
@@ -163,72 +159,93 @@ class _HomeSponsorScreenState extends State<HomeSponsorScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label.toUpperCase(), style: const TextStyle(color: AppColors.textGrey, fontSize: 10.5, fontWeight: FontWeight.w600)),
+          Icon(icon, color: AppColors.primary, size: 18),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(color: AppColors.textGrey, fontSize: 11, fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
+          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
         ],
       ),
     );
   }
 }
 
+/// Kartu proyek yang butuh sponsor. Bahasa & susunan info dibuat lebih jelas:
+/// judul dulu, lalu progres dana dengan angka LENGKAP (bukan disingkat) supaya
+/// sponsor tahu persis berapa yang sudah terkumpul dan berapa sisa target.
 class SponsorProjectCard extends StatelessWidget {
   final EventItem event;
   const SponsorProjectCard({super.key, required this.event});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-              child: event.posterUrl != null
-                  ? Image.network(event.posterUrl!, height: 140, width: double.infinity, fit: BoxFit.cover)
-                  : Container(height: 140, color: AppColors.primaryLight, child: const Icon(Icons.image_outlined, size: 36, color: AppColors.primary)),
-            ),
-            Positioned(top: 10, left: 10, child: AppBadge(text: 'Butuh Sponsor', color: AppColors.accent)),
-          ]),
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  AppBadge(text: event.sdgCategory, color: AppColors.primaryLight, textColor: AppColors.primaryDark),
-                  const SizedBox(width: 6),
-                  AppBadge(text: event.categoryLabel.toUpperCase(), color: AppColors.chipLingkungan, textColor: AppColors.primaryDark),
-                ]),
-                const SizedBox(height: 8),
-                Text(event.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15.5)),
-                const SizedBox(height: 4),
-                Text(event.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textGrey, fontSize: 12.5)),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Tercapai: ${formatRupiah(event.collectedFunding)}', style: const TextStyle(fontSize: 11.5, color: AppColors.textGrey)),
-                    Text('Target: ${formatRupiah(event.targetFunding)}', style: const TextStyle(fontSize: 11.5, color: AppColors.textGrey)),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                AppProgressBar(value: event.fundingProgress),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => EventDetailScreen(eventId: event.id, openSponsorForm: true))),
-                    child: const Text('Ajukan Sponsor'),
+    final remaining = (event.targetFunding - event.collectedFunding).clamp(0, double.infinity);
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => EventDetailScreen(eventId: event.id))),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                child: event.posterUrl != null
+                    ? Image.network(event.posterUrl!, height: 140, width: double.infinity, fit: BoxFit.cover)
+                    : Container(height: 140, color: AppColors.primaryLight, child: const Icon(Icons.image_outlined, size: 36, color: AppColors.primary)),
+              ),
+              Positioned(top: 10, left: 10, child: AppBadge(text: 'Butuh Sponsor', color: AppColors.accent)),
+            ]),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(event.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15.5)),
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    AppBadge(text: event.sdgCategory, color: AppColors.primaryLight, textColor: AppColors.primaryDark),
+                    const SizedBox(width: 6),
+                    AppBadge(text: event.categoryLabel, color: AppColors.chipLingkungan, textColor: AppColors.primaryDark),
+                  ]),
+                  const SizedBox(height: 10),
+                  Text(event.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textGrey, fontSize: 12.5)),
+                  const SizedBox(height: 14),
+                  AppProgressBar(value: event.fundingProgress),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Sudah terkumpul', style: TextStyle(fontSize: 10.5, color: AppColors.textGrey)),
+                          Text(formatRupiahFull(event.collectedFunding), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Text('Masih dibutuhkan', style: TextStyle(fontSize: 10.5, color: AppColors.textGrey)),
+                          Text(formatRupiahFull(remaining), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.accent)),
+                        ],
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => EventDetailScreen(eventId: event.id, openSponsorForm: true))),
+                      child: const Text('Ajukan Sponsor'),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

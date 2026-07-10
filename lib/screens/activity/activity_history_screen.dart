@@ -21,9 +21,6 @@ class ActivityHistoryScreen extends StatefulWidget {
 class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
   late String _role;
   String _filter = 'Semua';
-  bool _isSearching = false;
-  String _searchQuery = '';
-  final _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -32,121 +29,58 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
   }
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _toggleSearch() {
-    setState(() {
-      _isSearching = !_isSearching;
-      if (!_isSearching) {
-        _searchController.clear();
-        _searchQuery = '';
-      }
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final canPop = Navigator.of(context).canPop();
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      if (!_isSearching) ...[
-                        Row(children: [
-                          if (canPop)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 4),
-                              child: IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                icon: const Icon(Icons.arrow_back, color: AppColors.primary),
-                                onPressed: () => Navigator.of(context).pop(),
-                              ),
-                            ),
-                          const Icon(Icons.public, color: AppColors.primary),
-                          const SizedBox(width: 6),
-                          const Text('RajutAksi', style: TextStyle(color: AppColors.primary, fontSize: 20, fontWeight: FontWeight.bold)),
-                        ]),
-                        IconButton(
-                          icon: const Icon(Icons.search, color: AppColors.textDark),
-                          onPressed: _toggleSearch,
-                        ),
-                      ] else
-                        Expanded(
-                          child: Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
-                                onPressed: _toggleSearch,
-                              ),
-                              Expanded(
-                                child: TextField(
-                                  controller: _searchController,
-                                  autofocus: true,
-                                  onChanged: (value) => setState(() => _searchQuery = value),
-                                  decoration: const InputDecoration(
-                                    hintText: 'Cari aktivitas...',
-                                    border: InputBorder.none,
-                                  ),
-                                ),
-                              ),
-                              if (_searchQuery.isNotEmpty)
-                                IconButton(
-                                  icon: const Icon(Icons.close, color: AppColors.textDark),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() => _searchQuery = '');
-                                  },
-                                ),
-                            ],
-                          ),
-                        ),
-                    ],
+    return SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(children: [
+                      Icon(Icons.public, color: AppColors.primary),
+                      SizedBox(width: 6),
+                      Text('RajutAksi', style: TextStyle(color: AppColors.primary, fontSize: 20, fontWeight: FontWeight.bold)),
+                    ]),
+                    const Icon(Icons.search, color: AppColors.textDark),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Text('Riwayat Aktivitas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(_subtitleForRole(_role), style: const TextStyle(color: AppColors.textGrey, fontSize: 12.5)),
+                const SizedBox(height: 14),
+                SizedBox(
+                  height: 38,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _filtersForRole(_role).length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, i) {
+                      final f = _filtersForRole(_role)[i];
+                      final selected = f == _filter;
+                      return ChoiceChip(
+                        label: Text(f),
+                        selected: selected,
+                        onSelected: (_) => setState(() => _filter = f),
+                        selectedColor: AppColors.primary,
+                        labelStyle: TextStyle(color: selected ? Colors.white : AppColors.textDark),
+                        backgroundColor: AppColors.surface,
+                        side: const BorderSide(color: AppColors.border),
+                      );
+                    },
                   ),
-                  const SizedBox(height: 16),
-                  const Text('Riwayat Aktivitas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  Text(_subtitleForRole(_role), style: const TextStyle(color: AppColors.textGrey, fontSize: 12.5)),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    height: 38,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _filtersForRole(_role).length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
-                      itemBuilder: (context, i) {
-                        final f = _filtersForRole(_role)[i];
-                        final selected = f == _filter;
-                        return ChoiceChip(
-                          label: Text(f),
-                          selected: selected,
-                          onSelected: (_) => setState(() => _filter = f),
-                          selectedColor: AppColors.primary,
-                          labelStyle: TextStyle(color: selected ? Colors.white : AppColors.textDark),
-                          backgroundColor: AppColors.surface,
-                          side: const BorderSide(color: AppColors.border),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
+                ),
+                const SizedBox(height: 16),
+              ],
             ),
-            Expanded(child: _buildBodyForRole(_role)),
-          ],
-        ),
+          ),
+          Expanded(child: _buildBodyForRole(_role)),
+        ],
       ),
     );
   }
@@ -176,11 +110,11 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
   Widget _buildBodyForRole(String role) {
     switch (role) {
       case AppRole.organisasi:
-        return _OrganizerActivityList(filter: _filter, searchQuery: _searchQuery);
+        return _OrganizerActivityList(filter: _filter);
       case AppRole.sponsor:
-        return _SponsorActivityList(filter: _filter, searchQuery: _searchQuery);
+        return _SponsorActivityList(filter: _filter);
       default:
-        return _VolunteerActivityList(filter: _filter, searchQuery: _searchQuery);
+        return _VolunteerActivityList(filter: _filter);
     }
   }
 }
@@ -190,8 +124,7 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
 // ---------------------------------------------------------------------------
 class _VolunteerActivityList extends StatefulWidget {
   final String filter;
-  final String searchQuery;
-  const _VolunteerActivityList({required this.filter, this.searchQuery = ''});
+  const _VolunteerActivityList({required this.filter});
 
   @override
   State<_VolunteerActivityList> createState() => _VolunteerActivityListState();
@@ -221,26 +154,13 @@ class _VolunteerActivityListState extends State<_VolunteerActivityList> {
             final target = {'Pending': 'pending', 'Disetujui': 'approved', 'Selesai': 'completed'}[widget.filter];
             items = items.where((e) => e['status'] == target).toList();
           }
-          if (widget.searchQuery.trim().isNotEmpty) {
-            final q = widget.searchQuery.toLowerCase();
-            items = items.where((e) {
-              final event = e['event'] as Map<String, dynamic>?;
-              final title = (event?['title'] ?? '').toString().toLowerCase();
-              return title.contains(q);
-            }).toList();
-          }
           if (items.isEmpty) {
             return ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-              children: [
+              children: const [
                 Center(
-                  child: Text(
-                    widget.searchQuery.isNotEmpty
-                        ? 'Tidak ada hasil untuk "${widget.searchQuery}"'
-                        : 'Belum ada kegiatan yang kamu ikuti.\nYuk cari kegiatan di halaman Home!',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.textGrey),
-                  ),
+                  child: Text('Belum ada kegiatan yang kamu ikuti.\nYuk cari kegiatan di halaman Home!',
+                      textAlign: TextAlign.center, style: TextStyle(color: AppColors.textGrey)),
                 ),
               ],
             );
@@ -324,8 +244,7 @@ class _VolunteerActivityListState extends State<_VolunteerActivityList> {
 // ---------------------------------------------------------------------------
 class _OrganizerActivityList extends StatefulWidget {
   final String filter;
-  final String searchQuery;
-  const _OrganizerActivityList({required this.filter, this.searchQuery = ''});
+  const _OrganizerActivityList({required this.filter});
 
   @override
   State<_OrganizerActivityList> createState() => _OrganizerActivityListState();
@@ -357,22 +276,13 @@ class _OrganizerActivityListState extends State<_OrganizerActivityList> {
             final target = {'Published': 'published', 'Draft': 'draft', 'Selesai': 'done'}[widget.filter];
             items = items.where((e) => e.status == target).toList();
           }
-          if (widget.searchQuery.trim().isNotEmpty) {
-            final q = widget.searchQuery.toLowerCase();
-            items = items.where((e) => e.title.toLowerCase().contains(q)).toList();
-          }
           if (items.isEmpty) {
             return ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-              children: [
+              children: const [
                 Center(
-                  child: Text(
-                    widget.searchQuery.isNotEmpty
-                        ? 'Tidak ada hasil untuk "${widget.searchQuery}"'
-                        : 'Belum ada event yang kamu buat.\nYuk buat event pertamamu dari halaman Home!',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.textGrey),
-                  ),
+                  child: Text('Belum ada event yang kamu buat.\nYuk buat event pertamamu dari halaman Home!',
+                      textAlign: TextAlign.center, style: TextStyle(color: AppColors.textGrey)),
                 ),
               ],
             );
@@ -434,8 +344,7 @@ class _OrganizerActivityListState extends State<_OrganizerActivityList> {
 // ---------------------------------------------------------------------------
 class _SponsorActivityList extends StatefulWidget {
   final String filter;
-  final String searchQuery;
-  const _SponsorActivityList({required this.filter, this.searchQuery = ''});
+  const _SponsorActivityList({required this.filter});
 
   @override
   State<_SponsorActivityList> createState() => _SponsorActivityListState();
@@ -465,26 +374,13 @@ class _SponsorActivityListState extends State<_SponsorActivityList> {
             final target = {'Pending': 'pending', 'Diterima': 'accepted', 'Ditolak': 'rejected'}[widget.filter];
             items = items.where((e) => e['status'] == target).toList();
           }
-          if (widget.searchQuery.trim().isNotEmpty) {
-            final q = widget.searchQuery.toLowerCase();
-            items = items.where((e) {
-              final event = e['event'] as Map<String, dynamic>?;
-              final title = (event?['title'] ?? '').toString().toLowerCase();
-              return title.contains(q);
-            }).toList();
-          }
           if (items.isEmpty) {
             return ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-              children: [
+              children: const [
                 Center(
-                  child: Text(
-                    widget.searchQuery.isNotEmpty
-                        ? 'Tidak ada hasil untuk "${widget.searchQuery}"'
-                        : 'Belum ada penawaran sponsor yang kamu ajukan.\nCari proyek yang butuh sponsor di halaman Home!',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.textGrey),
-                  ),
+                  child: Text('Belum ada penawaran sponsor yang kamu ajukan.\nCari proyek yang butuh sponsor di halaman Home!',
+                      textAlign: TextAlign.center, style: TextStyle(color: AppColors.textGrey)),
                 ),
               ],
             );
@@ -499,16 +395,17 @@ class _SponsorActivityListState extends State<_SponsorActivityList> {
               final eventItem = EventItem.fromMap(event);
               final status = item['status'] as String? ?? 'pending';
               final amount = (item['amount'] ?? 0).toDouble();
-              return GestureDetector(
+              final message = item['message'] as String? ?? '';
+              final createdAt = DateTime.tryParse(item['created_at'] ?? '');
+              return _SponsorshipCard(
+                event: eventItem,
+                amount: amount,
+                message: message,
+                createdAt: createdAt,
+                statusLabel: _statusLabel(status),
+                statusColor: _statusColor(status),
+                statusExplanation: _statusExplanation(status),
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => EventDetailScreen(eventId: eventItem.id))),
-                child: _ActivityCard(
-                  title: eventItem.title,
-                  subtitleIcon: Icons.savings_outlined,
-                  subtitle: 'Penawaran: ${formatRupiah(amount)}',
-                  statusLabel: _statusLabel(status),
-                  statusColor: _statusColor(status),
-                  posterUrl: eventItem.posterUrl,
-                ),
               );
             },
           );
@@ -528,6 +425,17 @@ class _SponsorActivityListState extends State<_SponsorActivityList> {
     }
   }
 
+  String _statusExplanation(String s) {
+    switch (s) {
+      case 'accepted':
+        return 'Penawaran kamu sudah diterima penyelenggara. Terima kasih atas kontribusinya!';
+      case 'rejected':
+        return 'Penawaran kamu belum bisa diterima kali ini.';
+      default:
+        return 'Sedang ditinjau oleh penyelenggara. Biasanya diproses dalam 2×24 jam.';
+    }
+  }
+
   Color _statusColor(String s) {
     switch (s) {
       case 'accepted':
@@ -537,6 +445,117 @@ class _SponsorActivityListState extends State<_SponsorActivityList> {
       default:
         return AppColors.accent;
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// KARTU RIWAYAT PENAWARAN SPONSOR — dibuat lebih detail & mudah dipahami:
+// nominal ditampilkan lengkap (bukan disingkat), ada tanggal pengajuan,
+// dan penjelasan singkat apa arti status saat ini.
+// ---------------------------------------------------------------------------
+class _SponsorshipCard extends StatelessWidget {
+  final EventItem event;
+  final double amount;
+  final String message;
+  final DateTime? createdAt;
+  final String statusLabel;
+  final Color statusColor;
+  final String statusExplanation;
+  final VoidCallback onTap;
+
+  const _SponsorshipCard({
+    required this.event,
+    required this.amount,
+    required this.message,
+    required this.createdAt,
+    required this.statusLabel,
+    required this.statusColor,
+    required this.statusExplanation,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: onTap,
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                  child: event.posterUrl != null
+                      ? Image.network(event.posterUrl!, height: 110, width: double.infinity, fit: BoxFit.cover)
+                      : Container(height: 110, width: double.infinity, color: AppColors.primaryLight,
+                          child: const Icon(Icons.image_outlined, size: 30, color: AppColors.primary)),
+                ),
+                Positioned(top: 10, left: 10, child: AppBadge(text: statusLabel, color: statusColor)),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: onTap,
+                  child: Text(event.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${event.categoryLabel} • ${event.sdgCategory}',
+                  style: const TextStyle(fontSize: 11.5, color: AppColors.textGrey),
+                ),
+                const SizedBox(height: 12),
+                // Kotak nominal — dibuat menonjol supaya sponsor langsung
+                // tahu berapa yang mereka tawarkan tanpa harus menghitung sendiri.
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(12)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Nilai Penawaran Anda', style: TextStyle(fontSize: 12, color: AppColors.primaryDark)),
+                      Text(formatRupiahFull(amount), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                if (createdAt != null)
+                  Row(children: [
+                    const Icon(Icons.event_note_outlined, size: 13, color: AppColors.textGrey),
+                    const SizedBox(width: 4),
+                    Text('Diajukan ${DateFormat('d MMM y', 'id_ID').format(createdAt!)}', style: const TextStyle(fontSize: 11.5, color: AppColors.textGrey)),
+                  ]),
+                if (message.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text('"$message"', style: const TextStyle(fontSize: 12, color: AppColors.textGrey, fontStyle: FontStyle.italic), maxLines: 2, overflow: TextOverflow.ellipsis),
+                ],
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(color: statusColor.withOpacity(0.08), borderRadius: BorderRadius.circular(10)),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info_outline, size: 14, color: statusColor),
+                      const SizedBox(width: 6),
+                      Expanded(child: Text(statusExplanation, style: TextStyle(fontSize: 11.5, color: statusColor))),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -622,6 +641,7 @@ class _SelesaiBadge extends StatelessWidget {
     return AppBadge(text: 'Selesai', color: AppColors.success);
   }
 }
+
 
 class _ActivityCard extends StatelessWidget {
   final String title;

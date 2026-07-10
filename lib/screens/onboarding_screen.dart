@@ -3,11 +3,11 @@ import '../core/app_theme.dart';
 import 'auth/login_screen.dart';
 
 class _OnboardData {
-  final IconData icon;
+  final String imageUrl;
   final String title;
   final String desc;
   final Color color;
-  _OnboardData(this.icon, this.title, this.desc, this.color);
+  _OnboardData(this.imageUrl, this.title, this.desc, this.color);
 }
 
 class OnboardingScreen extends StatefulWidget {
@@ -22,13 +22,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _index = 0;
 
   final _pages = [
-    _OnboardData(Icons.handshake_rounded, 'Connecting Volunteers',
+    _OnboardData(
+        'https://images.unsplash.com/photo-1565803974275-dccd2f933cbb?auto=format&fit=crop&w=900&q=80',
+        'Connecting Volunteers',
         'Temukan kegiatan sosial lokal dan aksi bermakna yang sesuai passion kamu. Jadilah perubahan yang kamu inginkan.',
         AppColors.primary),
-    _OnboardData(Icons.groups_2_rounded, 'Empowering Organizations',
+    _OnboardData(
+        'https://images.unsplash.com/photo-1758518731706-be5d5230e5a5?auto=format&fit=crop&w=900&q=80',
+        'Empowering Organizations',
         'Perluas dampakmu dengan menjangkau lebih banyak orang. Kelola event, pantau kontribusi, dan bangun komunitas yang berkembang.',
         AppColors.primaryDark),
-    _OnboardData(Icons.volunteer_activism_rounded, 'Strategic Sponsorship',
+    _OnboardData(
+        'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=900&q=80',
+        'Strategic Sponsorship',
         'Dorong perubahan nyata lewat transparansi dan pendanaan yang tepat sasaran. Bermitra untuk dampak berkelanjutan yang terukur.',
         AppColors.accent),
   ];
@@ -78,14 +84,47 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const SizedBox(height: 10),
-                          Container(
-                            height: 220,
-                            width: 220,
-                            decoration: BoxDecoration(
-                              color: p.color.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(28),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(28),
+                            child: AspectRatio(
+                              aspectRatio: 1.05,
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  Image.network(
+                                    p.imageUrl,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (context, child, progress) {
+                                      if (progress == null) return child;
+                                      return Container(
+                                        color: p.color.withOpacity(0.08),
+                                        child: const Center(child: CircularProgressIndicator()),
+                                      );
+                                    },
+                                    errorBuilder: (context, error, stack) => Container(
+                                      color: p.color.withOpacity(0.08),
+                                      child: Icon(Icons.image_outlined, size: 64, color: p.color),
+                                    ),
+                                  ),
+                                  // Overlay tipis di bawah foto supaya menyatu dengan warna brand
+                                  Positioned(
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    child: Container(
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [Colors.transparent, p.color.withOpacity(0.25)],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            child: Icon(p.icon, size: 96, color: p.color),
                           ),
                           const SizedBox(height: 28),
                           Text(p.title,

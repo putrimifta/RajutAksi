@@ -35,23 +35,29 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.primaryDark,
       body: Stack(
+        fit: StackFit.expand,
         children: [
-          Positioned(
-            top: -60,
-            right: -60,
-            child: _blob(220, AppColors.primaryLight),
+          // Foto latar asli, bukan lagi lingkaran-lingkaran kosong
+          Image.network(
+            'https://images.unsplash.com/photo-1565803974275-dccd2f933cbb?auto=format&fit=crop&w=1200&q=80',
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stack) => Container(color: AppColors.primaryDark),
           ),
-          Positioned(
-            top: 180,
-            left: -30,
-            child: _blob(70, AppColors.primaryLight.withOpacity(0.7)),
-          ),
-          Positioned(
-            bottom: -80,
-            left: -60,
-            child: _blob(220, AppColors.primaryLight),
+          // Gradasi warna brand di atas foto supaya logo & teks tetap jelas terbaca
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  AppColors.primaryDark.withOpacity(0.75),
+                  AppColors.primaryDark.withOpacity(0.55),
+                  AppColors.primaryDark.withOpacity(0.85),
+                ],
+              ),
+            ),
           ),
           Center(
             child: Column(
@@ -64,21 +70,24 @@ class _SplashScreenState extends State<SplashScreen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 8)),
+                      BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 24, offset: const Offset(0, 10)),
                     ],
                   ),
                   child: const Icon(Icons.public, color: AppColors.primary, size: 44),
                 ),
                 const SizedBox(height: 20),
                 const Text('RajutAksi',
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
-                const SizedBox(height: 10),
-                Container(width: 40, height: 3, color: AppColors.primary),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 8),
+                const Text('Langkah kecil untuk aksi nyata dunia.',
+                    style: TextStyle(fontSize: 13, color: Colors.white70)),
+                const SizedBox(height: 12),
+                Container(width: 40, height: 3, color: Colors.white),
               ],
             ),
           ),
           Positioned(
-            bottom: 80,
+            bottom: 60,
             left: 0,
             right: 0,
             child: Column(
@@ -92,13 +101,13 @@ class _SplashScreenState extends State<SplashScreen> {
                       width: 6,
                       height: 6,
                       decoration: BoxDecoration(
-                          color: i == 0 ? AppColors.primary : AppColors.border, shape: BoxShape.circle),
+                          color: i == 0 ? Colors.white : Colors.white38, shape: BoxShape.circle),
                     ),
                   ),
                 ),
                 const SizedBox(height: 14),
                 const Text('COLLECTIVE PROGRESS',
-                    style: TextStyle(color: AppColors.textGrey, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
+                    style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600, letterSpacing: 1.2, fontSize: 12)),
               ],
             ),
           ),
@@ -106,10 +115,4 @@ class _SplashScreenState extends State<SplashScreen> {
       ),
     );
   }
-
-  Widget _blob(double size, Color color) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
 }

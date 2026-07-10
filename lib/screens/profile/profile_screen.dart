@@ -3,7 +3,6 @@ import '../../core/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
 import '../auth/login_screen.dart';
-import '../activity/activity_history_screen.dart';
 import 'edit_profile_screen.dart';
 import 'switch_role_screen.dart';
 
@@ -91,8 +90,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _menuTile(Icons.sync_alt_outlined, 'Switch Role', 'Change to Volunteer, Organizer, or Sponsor',
                     () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SwitchRoleScreen()))),
                 const Divider(height: 1, color: AppColors.border),
-                _menuTile(Icons.history_outlined, 'Action History', 'View your past contributions',
-                    () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ActivityHistoryScreen()))),
+                _menuTile(Icons.history_outlined, 'Action History', 'View your past contributions', () {}),
               ],
             ),
           ),
