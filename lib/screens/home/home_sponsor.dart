@@ -5,6 +5,8 @@ import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
 import '../event/event_detail_screen.dart';
 import '../activity/activity_history_screen.dart';
+import '../notifications/notifications_screen.dart';
+import '../profile/profile_screen.dart';
 import 'sponsor_list_screen.dart';
 
 class HomeSponsorScreen extends StatefulWidget {
@@ -49,9 +51,15 @@ class _HomeSponsorScreenState extends State<HomeSponsorScreen> {
                   Text('RajutAksi', style: TextStyle(color: AppColors.primary, fontSize: 20, fontWeight: FontWeight.bold)),
                 ]),
                 Row(children: [
-                  const Icon(Icons.notifications_none, color: AppColors.textDark),
-                  const SizedBox(width: 10),
-                  AppAvatar(url: profile?.avatarUrl, name: name, radius: 16),
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none, color: AppColors.textDark),
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+                  ),
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileScreen())),
+                    child: AppAvatar(url: profile?.avatarUrl, name: name, radius: 16),
+                  ),
                 ]),
               ],
             ),

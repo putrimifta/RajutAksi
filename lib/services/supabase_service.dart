@@ -243,6 +243,22 @@ class SupabaseService extends ChangeNotifier {
     return (data as List).map((e) => SponsorshipItem.fromMap(e)).toList();
   }
 
+  /// Dipakai Organisasi: melihat semua tawaran sponsor yang masuk untuk event miliknya
+  Future<List<Map<String, dynamic>>> fetchEventSponsorships(String eventId) async {
+    final data = await _client
+        .from('sponsorships')
+        .select('*, sponsor:profiles(id, full_name, email, avatar_url, phone)')
+        .eq('event_id', eventId)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  /// Dipakai Organisasi: menerima / menolak tawaran sponsor.
+  /// Kalau diterima, trigger di database otomatis menambah collected_funding pada event.
+  Future<void> updateSponsorshipStatus(String sponsorshipId, String status) async {
+    await _client.from('sponsorships').update({'status': status}).eq('id', sponsorshipId);
+  }
+
   // ---------------- CHAT ----------------
 
   Future<List<Map<String, dynamic>>> fetchConversations() async {

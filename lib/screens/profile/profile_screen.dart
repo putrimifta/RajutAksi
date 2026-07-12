@@ -20,14 +20,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final profile = SupabaseService.instance.currentProfile;
 
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Row(children: [
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Row(children: [
                 Icon(Icons.public, color: AppColors.primary),
                 SizedBox(width: 6),
                 Text('RajutAksi', style: TextStyle(color: AppColors.primary, fontSize: 20, fontWeight: FontWeight.bold)),
@@ -122,6 +124,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

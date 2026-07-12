@@ -6,6 +6,7 @@ import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
 import 'sponsorship_form_screen.dart';
 import 'manage_registrations_screen.dart';
+import 'manage_sponsorships_screen.dart';
 import '../chat/chat_detail_screen.dart';
 
 class EventDetailScreen extends StatefulWidget {
@@ -259,14 +260,30 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         Builder(builder: (context) {
                           final isOwner = SupabaseService.instance.authUser?.id == event.organizerId;
                           if (isOwner) {
-                            return SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                                    builder: (_) => ManageRegistrationsScreen(eventId: event.id, eventTitle: event.title))),
-                                icon: const Icon(Icons.groups_outlined, size: 18),
-                                label: const Text('Kelola Relawan'),
-                              ),
+                            return Column(
+                              children: [
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                                        builder: (_) => ManageRegistrationsScreen(eventId: event.id, eventTitle: event.title))),
+                                    icon: const Icon(Icons.groups_outlined, size: 18),
+                                    label: const Text('Kelola Relawan'),
+                                  ),
+                                ),
+                                if (event.needSponsor) ...[
+                                  const SizedBox(height: 10),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton.icon(
+                                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                                          builder: (_) => ManageSponsorshipsScreen(eventId: event.id, eventTitle: event.title))),
+                                      icon: const Icon(Icons.workspace_premium_outlined, size: 18),
+                                      label: const Text('Kelola Sponsor'),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             );
                           }
                           return Row(

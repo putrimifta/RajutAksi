@@ -30,14 +30,16 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -81,6 +83,7 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
           ),
           Expanded(child: _buildBodyForRole(_role)),
         ],
+      ),
       ),
     );
   }

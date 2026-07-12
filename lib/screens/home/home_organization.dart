@@ -6,6 +6,8 @@ import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
 import '../event/create_event_screen.dart';
 import '../event/event_detail_screen.dart';
+import '../notifications/notifications_screen.dart';
+import '../profile/profile_screen.dart';
 
 class HomeOrganizationScreen extends StatefulWidget {
   const HomeOrganizationScreen({super.key});
@@ -47,7 +49,17 @@ class _HomeOrganizationScreenState extends State<HomeOrganizationScreen> {
                   SizedBox(width: 6),
                   Text('RajutAksi', style: TextStyle(color: AppColors.primary, fontSize: 20, fontWeight: FontWeight.bold)),
                 ]),
-                const Icon(Icons.notifications_none, color: AppColors.textDark),
+                Row(children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none, color: AppColors.textDark),
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+                  ),
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileScreen())),
+                    child: AppAvatar(url: profile?.avatarUrl, name: profile?.fullName ?? '?', radius: 16),
+                  ),
+                ]),
               ],
             ),
             const SizedBox(height: 16),
