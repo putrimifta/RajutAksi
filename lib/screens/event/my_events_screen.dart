@@ -6,6 +6,8 @@ import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
 import 'event_detail_screen.dart';
 
+const int _pageSize = 8;
+
 class MyEventsScreen extends StatefulWidget {
   const MyEventsScreen({super.key});
 
@@ -14,17 +16,51 @@ class MyEventsScreen extends StatefulWidget {
 }
 
 class _MyEventsScreenState extends State<MyEventsScreen> {
-  late Future<List<EventItem>> _future;
+  final _scrollCtrl = ScrollController();
+  final List<EventItem> _events = [];
+  int _page = 0;
+  bool _hasMore = true;
+  bool _loading = false;
+  bool _initialLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _resetAndLoad();
+    _scrollCtrl.addListener(() {
+      if (_scrollCtrl.position.pixels >= _scrollCtrl.position.maxScrollExtent - 200) {
+        _loadMore();
+      }
+    });
   }
 
-  void _load() {
-    final uid = SupabaseService.instance.authUser?.id;
-    _future = SupabaseService.instance.fetchEvents(organizerId: uid);
+  Future<void> _resetAndLoad() async {
+    setState(() {
+      _events.clear();
+      _page = 0;
+      _hasMore = true;
+      _initialLoading = true;
+    });
+    await _loadMore();
+  }
+
+  Future<void> _loadMore() async {
+    if (_loading || !_hasMore) return;
+    setState(() => _loading = true);
+    try {
+      final uid = SupabaseService.instance.authUser?.id;
+      final result = await SupabaseService.instance.fetchEvents(organizerId: uid, page: _page, pageSize: _pageSize);
+      setState(() {
+        _events.addAll(result);
+        _page++;
+        _hasMore = result.length == _pageSize;
+      });
+    } finally {
+      if (mounted) setState(() {
+        _loading = false;
+        _initialLoading = false;
+      });
+    }
   }
 
   @override
@@ -39,35 +75,36 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () async => setState(_load),
-          child: FutureBuilder<List<EventItem>>(
-            future: _future,
-            builder: (context, snap) {
-              if (!snap.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final events = snap.data!;
-              if (events.isEmpty) {
-                return ListView(
-                  padding: const EdgeInsets.all(20),
-                  children: const [
-                    SizedBox(height: 60),
-                    Center(
-                      child: Text(
-                        'Anda belum membuat event.',
-                        style: TextStyle(color: AppColors.textGrey),
-                      ),
+          onRefresh: _resetAndLoad,
+          child: _initialLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _events.isEmpty
+                  ? ListView(
+                      padding: const EdgeInsets.all(20),
+                      children: const [
+                        SizedBox(height: 60),
+                        Center(
+                          child: Text(
+                            'Anda belum membuat event.',
+                            style: TextStyle(color: AppColors.textGrey),
+                          ),
+                        ),
+                      ],
+                    )
+                  : ListView.builder(
+                      controller: _scrollCtrl,
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                      itemCount: _events.length + (_hasMore ? 1 : 0),
+                      itemBuilder: (context, i) {
+                        if (i >= _events.length) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+                        return _ManagedEventCard(event: _events[i]);
+                      },
                     ),
-                  ],
-                );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-                itemCount: events.length,
-                itemBuilder: (context, i) => _ManagedEventCard(event: events[i]),
-              );
-            },
-          ),
         ),
       ),
     );

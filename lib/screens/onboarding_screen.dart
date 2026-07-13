@@ -6,10 +6,12 @@ class _OnboardData {
   final String imageUrl;
   final String title;
   final String desc;
-  final Color color;
-  _OnboardData(this.imageUrl, this.title, this.desc, this.color);
+  _OnboardData(this.imageUrl, this.title, this.desc);
 }
 
+/// Desain terinspirasi dari kartu "Hello, welcome!" — foto penuh layar dengan
+/// judul besar & tombol di atasnya, tapi warnanya disesuaikan ke brand RajutAksi (#4E8EA2)
+/// dan dibuat vertikal untuk layar mobile.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -23,150 +25,165 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final _pages = [
     _OnboardData(
-        'https://images.unsplash.com/photo-1565803974275-dccd2f933cbb?auto=format&fit=crop&w=900&q=80',
-        'Connecting Volunteers',
-        'Temukan kegiatan sosial lokal dan aksi bermakna yang sesuai passion kamu. Jadilah perubahan yang kamu inginkan.',
-        AppColors.primary),
+      'https://images.unsplash.com/photo-1565803974275-dccd2f933cbb?auto=format&fit=crop&w=1000&q=80',
+      'Connecting\nVolunteers',
+      'Temukan kegiatan sosial lokal dan aksi bermakna yang sesuai passion kamu. Jadilah perubahan yang kamu inginkan.',
+    ),
     _OnboardData(
-        'https://images.unsplash.com/photo-1758518731706-be5d5230e5a5?auto=format&fit=crop&w=900&q=80',
-        'Empowering Organizations',
-        'Perluas dampakmu dengan menjangkau lebih banyak orang. Kelola event, pantau kontribusi, dan bangun komunitas yang berkembang.',
-        AppColors.primaryDark),
+      'https://images.unsplash.com/photo-1758518731706-be5d5230e5a5?auto=format&fit=crop&w=1000&q=80',
+      'Empowering\nOrganizations',
+      'Perluas dampakmu dengan menjangkau lebih banyak orang. Kelola event, pantau kontribusi, dan bangun komunitas.',
+    ),
     _OnboardData(
-        'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=900&q=80',
-        'Strategic Sponsorship',
-        'Dorong perubahan nyata lewat transparansi dan pendanaan yang tepat sasaran. Bermitra untuk dampak berkelanjutan yang terukur.',
-        AppColors.accent),
+      'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=1000&q=80',
+      'Strategic\nSponsorship',
+      'Dorong perubahan nyata lewat transparansi dan pendanaan yang tepat sasaran. Bermitra untuk dampak berkelanjutan.',
+    ),
   ];
 
   void _next() {
     if (_index == _pages.length - 1) {
       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
     } else {
-      _controller.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+      _controller.nextPage(duration: const Duration(milliseconds: 350), curve: Curves.easeOut);
     }
   }
+
+  void _skip() => Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      backgroundColor: AppColors.primaryDark,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          PageView.builder(
+            controller: _controller,
+            itemCount: _pages.length,
+            onPageChanged: (i) => setState(() => _index = i),
+            itemBuilder: (context, i) {
+              final p = _pages[i];
+              return Stack(
+                fit: StackFit.expand,
                 children: [
-                  const Text('RajutAksi',
-                      style: TextStyle(color: AppColors.primary, fontSize: 20, fontWeight: FontWeight.bold)),
-                  TextButton(
-                    onPressed: () => Navigator.of(context)
-                        .pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen())),
-                    child: const Text('Skip', style: TextStyle(color: AppColors.textGrey)),
+                  Image.network(
+                    p.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stack) => Container(color: AppColors.primaryDark),
+                  ),
+                  // Gradasi warna brand supaya teks tetap terbaca jelas di atas foto
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: const [0.0, 0.45, 1.0],
+                        colors: [
+                          AppColors.primaryDark.withOpacity(0.55),
+                          AppColors.primaryDark.withOpacity(0.35),
+                          AppColors.primaryDark.withOpacity(0.92),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          // Logo & nama app di pojok kiri atas (seperti "YOUR LOGO" di referensi)
+          Positioned(
+            top: 56,
+            left: 24,
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.public, color: AppColors.primary, size: 18),
+                ),
+                const SizedBox(width: 10),
+                const Text('RajutAksi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+              ],
+            ),
+          ),
+          Positioned(
+            top: 56,
+            right: 24,
+            child: TextButton(
+              onPressed: _skip,
+              child: const Text('Skip', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+            ),
+          ),
+          // Judul besar & deskripsi, gaya "Hello, welcome!" tapi warna brand
+          Positioned(
+            left: 28,
+            right: 28,
+            bottom: 132,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              child: Column(
+                key: ValueKey(_index),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _pages[_index].title,
+                    style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold, height: 1.1),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    _pages[_index].desc,
+                    style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
                   ),
                 ],
               ),
             ),
-            Expanded(
-              child: PageView.builder(
-                controller: _controller,
-                itemCount: _pages.length,
-                onPageChanged: (i) => setState(() => _index = i),
-                itemBuilder: (context, i) {
-                  final p = _pages[i];
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 28),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height * 0.45),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 10),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(28),
-                            child: AspectRatio(
-                              aspectRatio: 1.05,
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  Image.network(
-                                    p.imageUrl,
-                                    fit: BoxFit.cover,
-                                    loadingBuilder: (context, child, progress) {
-                                      if (progress == null) return child;
-                                      return Container(
-                                        color: p.color.withOpacity(0.08),
-                                        child: const Center(child: CircularProgressIndicator()),
-                                      );
-                                    },
-                                    errorBuilder: (context, error, stack) => Container(
-                                      color: p.color.withOpacity(0.08),
-                                      child: Icon(Icons.image_outlined, size: 64, color: p.color),
-                                    ),
-                                  ),
-                                  // Overlay tipis di bawah foto supaya menyatu dengan warna brand
-                                  Positioned(
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    child: Container(
-                                      height: 60,
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topCenter,
-                                          end: Alignment.bottomCenter,
-                                          colors: [Colors.transparent, p.color.withOpacity(0.25)],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 28),
-                          Text(p.title,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
-                          const SizedBox(height: 12),
-                          Text(p.desc,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(color: AppColors.textGrey, fontSize: 15, height: 1.4)),
-                          const SizedBox(height: 10),
-                        ],
+          ),
+          Positioned(
+            left: 28,
+            right: 28,
+            bottom: 56,
+            child: Row(
+              children: [
+                Row(
+                  children: List.generate(
+                    _pages.length,
+                    (i) => AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.only(right: 6),
+                      width: i == _index ? 20 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: i == _index ? Colors.white : Colors.white38,
+                        borderRadius: BorderRadius.circular(4),
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                _pages.length,
-                (i) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: i == _index ? 22 : 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: i == _index ? AppColors.primary : AppColors.border,
-                    borderRadius: BorderRadius.circular(4),
                   ),
                 ),
-              ),
+                const Spacer(),
+                ElevatedButton(
+                  onPressed: _next,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primaryDark,
+                    padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    minimumSize: Size.zero,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(_index == _pages.length - 1 ? 'Mulai' : 'Next', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(width: 6),
+                      const Icon(Icons.arrow_forward, size: 16),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: ElevatedButton(
-                onPressed: _next,
-                child: Text(_index == _pages.length - 1 ? 'Mulai' : 'Next'),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

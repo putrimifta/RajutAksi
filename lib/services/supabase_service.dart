@@ -52,6 +52,18 @@ class SupabaseService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Mengirim email berisi link untuk reset password.
+  /// Supabase akan mengarahkan user kembali ke [redirectTo] dengan token
+  /// pemulihan di URL, lalu app mendeteksinya lewat onAuthStateChange.
+  Future<void> sendPasswordResetEmail(String email, {String? redirectTo}) async {
+    await _client.auth.resetPasswordForEmail(email, redirectTo: redirectTo);
+  }
+
+  /// Dipanggil di halaman "Buat Kata Sandi Baru" setelah user klik link dari email.
+  Future<void> updatePassword(String newPassword) async {
+    await _client.auth.updateUser(UserAttributes(password: newPassword));
+  }
+
   Future<void> loadCurrentProfile() async {
     final uid = authUser?.id;
     if (uid == null) return;
@@ -102,6 +114,8 @@ class SupabaseService extends ChangeNotifier {
     bool onlyNeedSponsor = false,
     String? organizerId,
     String? status,
+    int page = 0,
+    int pageSize = 10,
   }) async {
     var query = _client.from('events').select('*, organizer:profiles(full_name, avatar_url)');
     if (category != null && category != 'Semua') {
@@ -116,7 +130,9 @@ class SupabaseService extends ChangeNotifier {
     if (status != null) {
       query = query.eq('status', status);
     }
-    final data = await query.order('created_at', ascending: false);
+    final from = page * pageSize;
+    final to = from + pageSize - 1;
+    final data = await query.order('created_at', ascending: false).range(from, to);
     return (data as List).map((e) => EventItem.fromMap(e)).toList();
   }
 
@@ -157,6 +173,44 @@ class SupabaseService extends ChangeNotifier {
       'target_funding': targetFunding,
       'status': asDraft ? 'draft' : 'published',
     });
+  }
+
+  /// Dipakai Organisasi untuk mengedit event miliknya. Hanya field yang
+  /// tidak null yang akan diperbarui.
+  Future<void> updateEvent({
+    required String eventId,
+    String? title,
+    String? description,
+    String? sdgCategory,
+    String? categoryLabel,
+    DateTime? eventDate,
+    String? location,
+    int? quota,
+    bool? needSponsor,
+    String? posterUrl,
+    double? targetFunding,
+    String? status,
+  }) async {
+    final updates = <String, dynamic>{};
+    if (title != null) updates['title'] = title;
+    if (description != null) updates['description'] = description;
+    if (sdgCategory != null) updates['sdg_category'] = sdgCategory;
+    if (categoryLabel != null) updates['category_label'] = categoryLabel;
+    if (eventDate != null) updates['event_date'] = eventDate.toIso8601String();
+    if (location != null) updates['location'] = location;
+    if (quota != null) updates['quota'] = quota;
+    if (needSponsor != null) updates['need_sponsor'] = needSponsor;
+    if (posterUrl != null) updates['poster_url'] = posterUrl;
+    if (targetFunding != null) updates['target_funding'] = targetFunding;
+    if (status != null) updates['status'] = status;
+    if (updates.isEmpty) return;
+    await _client.from('events').update(updates).eq('id', eventId);
+  }
+
+  /// Dipakai Organisasi untuk menghapus event miliknya secara permanen
+  /// (pendaftaran relawan & tawaran sponsor terkait ikut terhapus otomatis).
+  Future<void> deleteEvent(String eventId) async {
+    await _client.from('events').delete().eq('id', eventId);
   }
 
   Future<void> registerAsVolunteer(String eventId) async {
@@ -345,5 +399,85 @@ class SupabaseService extends ChangeNotifier {
           fileOptions: const FileOptions(upsert: true),
         );
     return _client.storage.from(bucket).getPublicUrl(path);
+  }
+
+  // ---------------- NOTIFICATIONS ----------------
+
+  Future<List<NotificationItem>> fetchNotifications({int limit = 50}) async {
+    final uid = authUser!.id;
+    final data = await _client
+        .from('notifications')
+        .select()
+        .eq('user_id', uid)
+        .order('created_at', ascending: false)
+        .limit(limit);
+    return (data as List).map((e) => NotificationItem.fromMap(e)).toList();
+  }
+
+  Future<void> markNotificationRead(String id) async {
+    await _client.from('notifications').update({'is_read': true}).eq('id', id);
+  }
+
+  Future<void> markAllNotificationsRead() async {
+    final uid = authUser!.id;
+    await _client.from('notifications').update({'is_read': true}).eq('user_id', uid).eq('is_read', false);
+  }
+
+  /// Stream realtime jumlah notifikasi belum dibaca — dipakai untuk badge merah di lonceng.
+  Stream<int> unreadNotificationCountStream() {
+    final uid = authUser?.id;
+    if (uid == null) return Stream.value(0);
+    return _client
+        .from('notifications')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', uid)
+        .map((rows) => rows.where((r) => r['is_read'] == false).length);
+  }
+
+  // ---------------- REVIEWS ----------------
+
+  Future<void> submitReview({
+    required String eventId,
+    required String revieweeId,
+    required int rating,
+    required String comment,
+  }) async {
+    final uid = authUser!.id;
+    await _client.from('reviews').insert({
+      'event_id': eventId,
+      'reviewer_id': uid,
+      'reviewee_id': revieweeId,
+      'rating': rating,
+      'comment': comment,
+    });
+  }
+
+  Future<List<ReviewItem>> fetchReviewsForUser(String userId) async {
+    final data = await _client
+        .from('reviews')
+        .select('*, reviewer:profiles!reviews_reviewer_id_fkey(full_name, avatar_url)')
+        .eq('reviewee_id', userId)
+        .order('created_at', ascending: false);
+    return (data as List).map((e) => ReviewItem.fromMap(e)).toList();
+  }
+
+  Future<double?> fetchAverageRating(String userId) async {
+    final data = await _client.from('reviews').select('rating').eq('reviewee_id', userId);
+    final list = List<Map<String, dynamic>>.from(data);
+    if (list.isEmpty) return null;
+    final total = list.fold<int>(0, (sum, r) => sum + (r['rating'] as int? ?? 0));
+    return total / list.length;
+  }
+
+  Future<bool> hasReviewed({required String eventId, required String revieweeId}) async {
+    final uid = authUser!.id;
+    final data = await _client
+        .from('reviews')
+        .select('id')
+        .eq('event_id', eventId)
+        .eq('reviewer_id', uid)
+        .eq('reviewee_id', revieweeId)
+        .maybeSingle();
+    return data != null;
   }
 }

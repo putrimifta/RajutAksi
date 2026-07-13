@@ -5,6 +5,8 @@ import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
 import 'event_detail_screen.dart';
 
+const int _pageSize = 8;
+
 class AllEventsScreen extends StatefulWidget {
   const AllEventsScreen({super.key});
 
@@ -15,18 +17,55 @@ class AllEventsScreen extends StatefulWidget {
 class _AllEventsScreenState extends State<AllEventsScreen> {
   String _category = 'Semua';
   final _categories = ['Semua', 'Lingkungan', 'Pendidikan', 'Kesehatan', 'Sosial'];
-  late Future<List<EventItem>> _future;
+  final _scrollCtrl = ScrollController();
+
+  final List<EventItem> _events = [];
+  int _page = 0;
+  bool _hasMore = true;
+  bool _loading = false;
+  bool _initialLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _resetAndLoad();
+    _scrollCtrl.addListener(() {
+      if (_scrollCtrl.position.pixels >= _scrollCtrl.position.maxScrollExtent - 200) {
+        _loadMore();
+      }
+    });
   }
 
-  void _load() {
-    _future = SupabaseService.instance.fetchEvents(
-      category: _category == 'Semua' ? null : _category,
-    );
+  Future<void> _resetAndLoad() async {
+    setState(() {
+      _events.clear();
+      _page = 0;
+      _hasMore = true;
+      _initialLoading = true;
+    });
+    await _loadMore();
+  }
+
+  Future<void> _loadMore() async {
+    if (_loading || !_hasMore) return;
+    setState(() => _loading = true);
+    try {
+      final result = await SupabaseService.instance.fetchEvents(
+        category: _category == 'Semua' ? null : _category,
+        page: _page,
+        pageSize: _pageSize,
+      );
+      setState(() {
+        _events.addAll(result);
+        _page++;
+        _hasMore = result.length == _pageSize;
+      });
+    } finally {
+      if (mounted) setState(() {
+        _loading = false;
+        _initialLoading = false;
+      });
+    }
   }
 
   @override
@@ -41,7 +80,7 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () async => setState(_load),
+          onRefresh: _resetAndLoad,
           child: Column(
             children: [
               SizedBox(
@@ -57,10 +96,10 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                     return ChoiceChip(
                       label: Text(c),
                       selected: selected,
-                      onSelected: (_) => setState(() {
-                        _category = c;
-                        _load();
-                      }),
+                      onSelected: (_) {
+                        setState(() => _category = c);
+                        _resetAndLoad();
+                      },
                       selectedColor: AppColors.primary,
                       labelStyle: TextStyle(color: selected ? Colors.white : AppColors.textDark),
                       backgroundColor: AppColors.surface,
@@ -70,25 +109,24 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                 ),
               ),
               Expanded(
-                child: FutureBuilder<List<EventItem>>(
-                  future: _future,
-                  builder: (context, snap) {
-                    if (!snap.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    final events = snap.data!;
-                    if (events.isEmpty) {
-                      return const Center(
-                        child: Text('Belum ada kegiatan di kategori ini', style: TextStyle(color: AppColors.textGrey)),
-                      );
-                    }
-                    return ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-                      itemCount: events.length,
-                      itemBuilder: (context, i) => _EventListCard(event: events[i]),
-                    );
-                  },
-                ),
+                child: _initialLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _events.isEmpty
+                        ? const Center(child: Text('Belum ada kegiatan di kategori ini', style: TextStyle(color: AppColors.textGrey)))
+                        : ListView.builder(
+                            controller: _scrollCtrl,
+                            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                            itemCount: _events.length + (_hasMore ? 1 : 0),
+                            itemBuilder: (context, i) {
+                              if (i >= _events.length) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  child: Center(child: CircularProgressIndicator()),
+                                );
+                              }
+                              return _EventListCard(event: _events[i]);
+                            },
+                          ),
               ),
             ],
           ),

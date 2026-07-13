@@ -47,8 +47,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _register() async {
-    if (_nameCtrl.text.trim().isEmpty || _emailCtrl.text.trim().isEmpty || _passCtrl.text.isEmpty) {
-      setState(() => _error = 'Lengkapi semua data terlebih dahulu.');
+    final name = _nameCtrl.text.trim();
+    final email = _emailCtrl.text.trim();
+    final emailRegex = RegExp(r'^[\w\.\-]+@[\w\-]+\.[a-zA-Z]{2,}$');
+
+    if (name.isEmpty || name.length < 3) {
+      setState(() => _error = 'Nama lengkap minimal 3 karakter.');
+      return;
+    }
+    if (!emailRegex.hasMatch(email)) {
+      setState(() => _error = 'Masukkan format email yang valid.');
+      return;
+    }
+    if (_passCtrl.text.length < 6) {
+      setState(() => _error = 'Kata sandi minimal 6 karakter.');
       return;
     }
     if (_passCtrl.text != _confirmCtrl.text) {
@@ -65,8 +77,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
     try {
       await SupabaseService.instance.signUp(
-        fullName: _nameCtrl.text.trim(),
-        email: _emailCtrl.text.trim(),
+        fullName: name,
+        email: email,
         password: _passCtrl.text,
         roles: _selectedRoles.toList(),
       );

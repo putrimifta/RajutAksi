@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
+import '../review/rate_review_screen.dart';
 
 /// Halaman ini dipakai Organisasi untuk melihat siapa saja yang mendaftar
 /// sebagai relawan di event miliknya, lalu menyetujui/menolak, dan
@@ -93,7 +94,7 @@ class _ManageRegistrationsScreenState extends State<ManageRegistrationsScreen> {
                       child: Center(child: Text('Belum ada relawan di kategori ini.', style: TextStyle(color: AppColors.textGrey))),
                     );
                   }
-                  return Column(children: items.map((r) => _RegistrationCard(data: r, onUpdate: _updateStatus)).toList());
+                  return Column(children: items.map((r) => _RegistrationCard(data: r, onUpdate: _updateStatus, eventId: widget.eventId, eventTitle: widget.eventTitle)).toList());
                 },
               ),
             ],
@@ -107,7 +108,9 @@ class _ManageRegistrationsScreenState extends State<ManageRegistrationsScreen> {
 class _RegistrationCard extends StatelessWidget {
   final Map<String, dynamic> data;
   final void Function(String registrationId, String status) onUpdate;
-  const _RegistrationCard({required this.data, required this.onUpdate});
+  final String eventId;
+  final String eventTitle;
+  const _RegistrationCard({required this.data, required this.onUpdate, required this.eventId, required this.eventTitle});
 
   @override
   Widget build(BuildContext context) {
@@ -116,6 +119,7 @@ class _RegistrationCard extends StatelessWidget {
     final email = volunteer?['email'] ?? '';
     final phone = volunteer?['phone'];
     final avatar = volunteer?['avatar_url'];
+    final volunteerId = volunteer?['id']?.toString() ?? '';
     final status = data['status'] as String? ?? 'pending';
     final registrationId = data['id'].toString();
 
@@ -175,11 +179,28 @@ class _RegistrationCard extends StatelessWidget {
                 label: const Text('Tandai Selesai (relawan bisa cetak sertifikat)'),
               ),
             )
+          else if (status == 'completed')
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => RateReviewScreen(
+                    eventId: eventId,
+                    eventTitle: eventTitle,
+                    revieweeId: volunteerId,
+                    revieweeName: name,
+                    revieweeAvatar: avatar,
+                  ),
+                )),
+                icon: const Icon(Icons.star_outline_rounded, size: 16),
+                label: const Text('Beri Ulasan Relawan Ini'),
+              ),
+            )
           else
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                status == 'completed' ? 'Kegiatan sudah selesai untuk relawan ini.' : 'Pendaftaran relawan ini sudah ditolak.',
+                'Pendaftaran relawan ini sudah ditolak.',
                 style: const TextStyle(fontSize: 12, color: AppColors.textGrey, fontStyle: FontStyle.italic),
               ),
             ),

@@ -6,6 +6,8 @@ import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
 import '../event/event_detail_screen.dart';
 import '../certificate/certificate_screen.dart';
+import '../review/rate_review_screen.dart';
+import '../event/impact_report_screen.dart';
 
 /// Halaman Activity ini menampilkan data BERBEDA tergantung peran aktif user:
 /// - Relawan   -> daftar event yang sudah didaftar + status pendaftaran
@@ -190,6 +192,15 @@ class _VolunteerActivityListState extends State<_VolunteerActivityList> {
                       eventTitle: eventItem.title,
                       eventDate: eventItem.eventDate,
                       organizerName: eventItem.organizerName ?? 'RajutAksi',
+                    ),
+                  )),
+                  onTapReview: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => RateReviewScreen(
+                      eventId: eventItem.id,
+                      eventTitle: eventItem.title,
+                      revieweeId: eventItem.organizerId,
+                      revieweeName: eventItem.organizerName ?? 'Organisasi',
+                      revieweeAvatar: eventItem.organizerAvatar,
                     ),
                   )),
                 );
@@ -408,7 +419,11 @@ class _SponsorActivityListState extends State<_SponsorActivityList> {
                 statusLabel: _statusLabel(status),
                 statusColor: _statusColor(status),
                 statusExplanation: _statusExplanation(status),
+                showImpactReport: status == 'accepted',
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => EventDetailScreen(eventId: eventItem.id))),
+                onTapReport: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => ImpactReportScreen(eventId: eventItem.id, sponsorshipAmount: amount),
+                )),
               );
             },
           );
@@ -464,7 +479,9 @@ class _SponsorshipCard extends StatelessWidget {
   final String statusLabel;
   final Color statusColor;
   final String statusExplanation;
+  final bool showImpactReport;
   final VoidCallback onTap;
+  final VoidCallback? onTapReport;
 
   const _SponsorshipCard({
     required this.event,
@@ -474,7 +491,9 @@ class _SponsorshipCard extends StatelessWidget {
     required this.statusLabel,
     required this.statusColor,
     required this.statusExplanation,
+    this.showImpactReport = false,
     required this.onTap,
+    this.onTapReport,
   });
 
   @override
@@ -553,6 +572,17 @@ class _SponsorshipCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (showImpactReport && onTapReport != null) ...[
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: onTapReport,
+                      icon: const Icon(Icons.bar_chart_outlined, size: 16),
+                      label: const Text('Lihat Laporan Dampak', style: TextStyle(fontSize: 12.5)),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -571,6 +601,7 @@ class _ActivityCardWithCertificate extends StatelessWidget {
   final String? posterUrl;
   final VoidCallback onTapCard;
   final VoidCallback onTapCertificate;
+  final VoidCallback? onTapReview;
 
   const _ActivityCardWithCertificate({
     required this.title,
@@ -578,6 +609,7 @@ class _ActivityCardWithCertificate extends StatelessWidget {
     this.posterUrl,
     required this.onTapCard,
     required this.onTapCertificate,
+    this.onTapReview,
   });
 
   @override
@@ -619,13 +651,26 @@ class _ActivityCardWithCertificate extends StatelessWidget {
                   Expanded(child: Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textGrey))),
                 ]),
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: onTapCertificate,
-                    icon: const Icon(Icons.workspace_premium_outlined, size: 18),
-                    label: const Text('Cetak Sertifikat'),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: onTapCertificate,
+                        icon: const Icon(Icons.workspace_premium_outlined, size: 16),
+                        label: const Text('Sertifikat', style: TextStyle(fontSize: 12.5)),
+                      ),
+                    ),
+                    if (onTapReview != null) ...[
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: onTapReview,
+                          icon: const Icon(Icons.star_outline_rounded, size: 16),
+                          label: const Text('Beri Ulasan', style: TextStyle(fontSize: 12.5)),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),

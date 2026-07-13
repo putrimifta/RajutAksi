@@ -6,6 +6,7 @@ import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
 import 'sponsorship_form_screen.dart';
 import 'manage_registrations_screen.dart';
+import 'create_event_screen.dart';
 import 'manage_sponsorships_screen.dart';
 import '../chat/chat_detail_screen.dart';
 
@@ -106,7 +107,21 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.primary), onPressed: () => Navigator.of(context).pop()),
                           const Text('RajutAksi', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 18)),
                         ]),
-                        const Icon(Icons.share_outlined, color: AppColors.primary),
+                        Row(children: [
+                          if (SupabaseService.instance.authUser?.id == event.organizerId)
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
+                              onPressed: () async {
+                                final changed = await Navigator.of(context).push<bool>(
+                                  MaterialPageRoute(builder: (_) => CreateEventScreen(existingEvent: event)),
+                                );
+                                if (changed == true && mounted) {
+                                  setState(() => _future = SupabaseService.instance.fetchEventDetail(widget.eventId));
+                                }
+                              },
+                            ),
+                          const Icon(Icons.share_outlined, color: AppColors.primary),
+                        ]),
                       ],
                     ),
                   ),
@@ -202,7 +217,20 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(event.organizerName ?? 'Organisasi', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                    const Text('Organisasi • Terverifikasi', style: TextStyle(fontSize: 11, color: AppColors.textGrey)),
+                                    FutureBuilder<double?>(
+                                      future: SupabaseService.instance.fetchAverageRating(event.organizerId),
+                                      builder: (context, snap) {
+                                        final rating = snap.data;
+                                        if (rating == null) {
+                                          return const Text('Organisasi • Belum ada ulasan', style: TextStyle(fontSize: 11, color: AppColors.textGrey));
+                                        }
+                                        return Row(children: [
+                                          const Icon(Icons.star_rounded, size: 14, color: AppColors.accent),
+                                          const SizedBox(width: 2),
+                                          Text('${rating.toStringAsFixed(1)} • Organisasi', style: const TextStyle(fontSize: 11, color: AppColors.textGrey)),
+                                        ]);
+                                      },
+                                    ),
                                   ],
                                 ),
                               ),

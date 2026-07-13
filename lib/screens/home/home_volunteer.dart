@@ -6,7 +6,7 @@ import '../../services/supabase_service.dart';
 import '../../widgets/common_widgets.dart';
 import '../event/event_detail_screen.dart';
 import '../event/all_events_screen.dart';
-import '../notifications/notifications_screen.dart';
+import '../../widgets/notification_bell.dart';
 import '../profile/profile_screen.dart';
 
 class HomeVolunteerScreen extends StatefulWidget {
@@ -65,10 +65,7 @@ class _HomeVolunteerScreenState extends State<HomeVolunteerScreen> {
                   Text('RajutAksi', style: TextStyle(color: AppColors.primary, fontSize: 20, fontWeight: FontWeight.bold)),
                 ]),
                 Row(children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none, color: AppColors.textDark),
-                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationsScreen())),
-                  ),
+                  const NotificationBell(),
                   const SizedBox(width: 4),
                   GestureDetector(
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileScreen())),

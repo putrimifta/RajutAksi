@@ -27,11 +27,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
     return SafeArea(
       child: Scaffold(
         backgroundColor: AppColors.background,
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: AppColors.primary,
-          onPressed: () {},
-          child: const Icon(Icons.edit_outlined, color: Colors.white),
-        ),
         body: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           children: [

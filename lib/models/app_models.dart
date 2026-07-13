@@ -253,3 +253,72 @@ class MessageItem {
         createdAt: DateTime.tryParse(map['created_at'] ?? '') ?? DateTime.now(),
       );
 }
+
+class NotificationItem {
+  final String id;
+  final String title;
+  final String body;
+  final String type;
+  final String? relatedEventId;
+  final bool isRead;
+  final DateTime createdAt;
+
+  NotificationItem({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.type,
+    this.relatedEventId,
+    required this.isRead,
+    required this.createdAt,
+  });
+
+  factory NotificationItem.fromMap(Map<String, dynamic> map) => NotificationItem(
+        id: map['id'].toString(),
+        title: map['title'] ?? '',
+        body: map['body'] ?? '',
+        type: map['type'] ?? 'general',
+        relatedEventId: map['related_event_id']?.toString(),
+        isRead: map['is_read'] ?? false,
+        createdAt: DateTime.tryParse(map['created_at'] ?? '') ?? DateTime.now(),
+      );
+}
+
+class ReviewItem {
+  final String id;
+  final String eventId;
+  final String reviewerId;
+  final String revieweeId;
+  final int rating;
+  final String comment;
+  final DateTime createdAt;
+  final String? reviewerName;
+  final String? reviewerAvatar;
+
+  ReviewItem({
+    required this.id,
+    required this.eventId,
+    required this.reviewerId,
+    required this.revieweeId,
+    required this.rating,
+    required this.comment,
+    required this.createdAt,
+    this.reviewerName,
+    this.reviewerAvatar,
+  });
+
+  factory ReviewItem.fromMap(Map<String, dynamic> map) {
+    final reviewer = map['reviewer'] as Map<String, dynamic>?;
+    return ReviewItem(
+      id: map['id'].toString(),
+      eventId: map['event_id'].toString(),
+      reviewerId: map['reviewer_id'].toString(),
+      revieweeId: map['reviewee_id'].toString(),
+      rating: map['rating'] ?? 5,
+      comment: map['comment'] ?? '',
+      createdAt: DateTime.tryParse(map['created_at'] ?? '') ?? DateTime.now(),
+      reviewerName: reviewer?['full_name'],
+      reviewerAvatar: reviewer?['avatar_url'],
+    );
+  }
+}

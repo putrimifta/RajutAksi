@@ -3,6 +3,7 @@ import '../../core/app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../home/home_shell.dart';
 import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
+  bool _remember = true;
   bool _loading = false;
   String? _error;
 
@@ -34,6 +36,49 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Widget _pillField({
+    required TextEditingController controller,
+    required IconData icon,
+    required String hint,
+    bool obscure = false,
+    Widget? suffix,
+    TextInputType? keyboardType,
+    ValueChanged<String>? onSubmitted,
+  }) {
+    return Container(
+      decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(18)),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, size: 17, color: AppColors.primary),
+          ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              obscureText: obscure,
+              keyboardType: keyboardType,
+              onSubmitted: onSubmitted,
+              decoration: InputDecoration(
+                hintText: hint,
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              ),
+            ),
+          ),
+          if (suffix != null) suffix,
+          const SizedBox(width: 4),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -42,8 +87,6 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header gradasi warna brand, memberi kesan lebih premium dibanding
-            // sekadar teks putih polos di atas background flat.
             Container(
               padding: const EdgeInsets.fromLTRB(24, 64, 24, 48),
               decoration: const BoxDecoration(
@@ -84,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.all(22),
                       decoration: BoxDecoration(
                         color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(24),
                         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 20, offset: const Offset(0, 8))],
                       ),
                       child: Column(
@@ -93,32 +136,48 @@ class _LoginScreenState extends State<LoginScreen> {
                           const Text('Selamat Datang Kembali', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 4),
                           const Text('Masuk untuk melanjutkan aksi baikmu.', style: TextStyle(fontSize: 12.5, color: AppColors.textGrey)),
-                          const SizedBox(height: 20),
-                          const Text('Alamat Email', style: TextStyle(fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 6),
-                          TextField(
-                            controller: _emailCtrl,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: const InputDecoration(
-                              hintText: 'nama@email.com',
-                              prefixIcon: Icon(Icons.mail_outline),
+                          const SizedBox(height: 22),
+                          _pillField(controller: _emailCtrl, icon: Icons.mail_outline, hint: 'Alamat email', keyboardType: TextInputType.emailAddress),
+                          const SizedBox(height: 14),
+                          _pillField(
+                            controller: _passCtrl,
+                            icon: Icons.lock_outline,
+                            hint: 'Kata sandi',
+                            obscure: _obscure,
+                            onSubmitted: (_) => _login(),
+                            suffix: IconButton(
+                              icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 19),
+                              onPressed: () => setState(() => _obscure = !_obscure),
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          const Text('Kata Sandi', style: TextStyle(fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 6),
-                          TextField(
-                            controller: _passCtrl,
-                            obscureText: _obscure,
-                            onSubmitted: (_) => _login(),
-                            decoration: InputDecoration(
-                              hintText: '••••••••',
-                              prefixIcon: const Icon(Icons.lock_outline),
-                              suffixIcon: IconButton(
-                                icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                                onPressed: () => setState(() => _obscure = !_obscure),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              GestureDetector(
+                                onTap: () => setState(() => _remember = !_remember),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: Checkbox(
+                                        value: _remember,
+                                        onChanged: (v) => setState(() => _remember = v ?? true),
+                                        activeColor: AppColors.primary,
+                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Text('Ingat saya', style: TextStyle(fontSize: 12.5, color: AppColors.textGrey)),
+                                  ],
+                                ),
                               ),
-                            ),
+                              GestureDetector(
+                                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())),
+                                child: const Text('Lupa sandi?', style: TextStyle(color: AppColors.primary, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                              ),
+                            ],
                           ),
                           if (_error != null) ...[
                             const SizedBox(height: 12),
@@ -134,15 +193,26 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ],
-                          const SizedBox(height: 22),
-                          ElevatedButton(
-                            onPressed: _loading ? null : _login,
-                            child: _loading
-                                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [Text('Masuk'), SizedBox(width: 6), Icon(Icons.arrow_forward, size: 18)],
-                                  ),
+                          const SizedBox(height: 18),
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(colors: [AppColors.primaryDark, AppColors.primary]),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: ElevatedButton(
+                              onPressed: _loading ? null : _login,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                              ),
+                              child: _loading
+                                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  : const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [Text('Masuk'), SizedBox(width: 6), Icon(Icons.arrow_forward, size: 18)],
+                                    ),
+                            ),
                           ),
                         ],
                       ),
