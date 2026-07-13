@@ -287,6 +287,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         const SizedBox(height: 24),
                         Builder(builder: (context) {
                           final isOwner = SupabaseService.instance.authUser?.id == event.organizerId;
+
+                          // PEMILIK EVENT: kelola relawan & sponsor
                           if (isOwner) {
                             return Column(
                               children: [
@@ -314,26 +316,46 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                               ],
                             );
                           }
-                          return Row(
-                            children: [
-                              if (event.needSponsor)
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => SponsorshipFormScreen(event: event))),
-                                    icon: const Icon(Icons.workspace_premium_outlined, size: 18),
-                                    label: const Text('Ajukan Sponsor'),
-                                  ),
+
+                          final activeRole = SupabaseService.instance.currentProfile?.activeRole ?? AppRole.relawan;
+
+                          // POV SPONSOR: cuma bisa ajukan sponsor, bukan daftar relawan
+                          if (activeRole == AppRole.sponsor) {
+                            if (!event.needSponsor) {
+                              return Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(14)),
+                                child: const Text(
+                                  'Kegiatan ini tidak membutuhkan sponsor.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: AppColors.primaryDark, fontSize: 12.5),
                                 ),
-                              if (event.needSponsor) const SizedBox(width: 12),
-                              Expanded(
-                                flex: 2,
-                                child: ElevatedButton.icon(
-                                  onPressed: _registering || _registered ? null : () => _daftarRelawan(event),
-                                  icon: Icon(_registered ? Icons.check : Icons.volunteer_activism_outlined, size: 18),
-                                  label: Text(_registered ? 'Terdaftar' : 'Daftar Relawan'),
-                                ),
+                              );
+                            }
+                            return SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => SponsorshipFormScreen(event: event))),
+                                icon: const Icon(Icons.workspace_premium_outlined, size: 18),
+                                label: const Text('Ajukan Sponsor'),
                               ),
-                            ],
+                            );
+                          }
+
+                          // POV ORGANISASI melihat event organisasi lain: cuma bisa lihat & chat
+                          if (activeRole == AppRole.organisasi) {
+                            return const SizedBox.shrink();
+                          }
+
+                          // POV RELAWAN (default)
+                          return SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _registering || _registered ? null : () => _daftarRelawan(event),
+                              icon: Icon(_registered ? Icons.check : Icons.volunteer_activism_outlined, size: 18),
+                              label: Text(_registered ? 'Terdaftar' : 'Daftar Relawan'),
+                            ),
                           );
                         }),
                         const SizedBox(height: 20),
