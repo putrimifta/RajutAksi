@@ -232,18 +232,12 @@ class SupabaseService extends ChangeNotifier {
     return List<Map<String, dynamic>>.from(data);
   }
 
-  /// Dipakai Organisasi: menyetujui / menolak / menandai selesai seorang relawan
+  /// Dipakai Organisasi: menerima / menolak / menyelesaikan status pendaftaran relawan
   Future<void> updateRegistrationStatus(String registrationId, String status) async {
     await _client.from('registrations').update({'status': status}).eq('id', registrationId);
   }
 
-  Future<List<RegistrationItem>> fetchMyRegistrations() async {
-    final uid = authUser!.id;
-    final data = await _client.from('registrations').select().eq('volunteer_id', uid);
-    return (data as List).map((e) => RegistrationItem.fromMap(e)).toList();
-  }
-
-  /// Riwayat aktivitas Relawan: event yang sudah didaftar, lengkap dengan status pendaftaran
+  /// Riwayat aktivitas Relawan: event yang sudah didaftar, lengkap data event-nya
   Future<List<Map<String, dynamic>>> fetchMyRegisteredEventsDetailed() async {
     final uid = authUser!.id;
     final data = await _client
@@ -319,8 +313,8 @@ class SupabaseService extends ChangeNotifier {
     final uid = authUser!.id;
     final data = await _client
         .from('conversations')
-        .select('*, user_a:profiles!conversations_user_a_fkey(full_name, avatar_url), '
-            'user_b:profiles!conversations_user_b_fkey(full_name, avatar_url)')
+        .select('*, user_a:profiles!conversations_user_a_fkey(id, full_name, avatar_url), '
+            'user_b:profiles!conversations_user_b_fkey(id, full_name, avatar_url)')
         .or('user_a.eq.$uid,user_b.eq.$uid')
         .order('last_message_at', ascending: false);
     return List<Map<String, dynamic>>.from(data);
@@ -371,10 +365,31 @@ class SupabaseService extends ChangeNotifier {
       'attachment_url': attachmentUrl,
       'attachment_name': attachmentName,
     });
+    final convo = await _client.from('conversations').select('user_a, user_b').eq('id', conversationId).single();
+    final isUserA = convo['user_a'] == uid;
+    final now = DateTime.now().toIso8601String();
     await _client.from('conversations').update({
       'last_message': content,
-      'last_message_at': DateTime.now().toIso8601String(),
+      'last_message_at': now,
+      isUserA ? 'last_read_a' : 'last_read_b': now,
     }).eq('id', conversationId);
+  }
+
+  /// Menandai satu percakapan sudah dibaca oleh user yang sedang login.
+  Future<void> markConversationRead(String conversationId) async {
+    final uid = authUser!.id;
+    final convo = await _client.from('conversations').select('user_a, user_b').eq('id', conversationId).single();
+    final isUserA = convo['user_a'] == uid;
+    final now = DateTime.now().toIso8601String();
+    await _client.from('conversations').update({isUserA ? 'last_read_a' : 'last_read_b': now}).eq('id', conversationId);
+  }
+
+  /// Menandai SEMUA percakapan milik user yang sedang login sebagai sudah dibaca.
+  Future<void> markAllConversationsRead() async {
+    final uid = authUser!.id;
+    final now = DateTime.now().toIso8601String();
+    await _client.from('conversations').update({'last_read_a': now}).eq('user_a', uid);
+    await _client.from('conversations').update({'last_read_b': now}).eq('user_b', uid);
   }
 
   /// Realtime stream untuk pesan baru di sebuah percakapan
