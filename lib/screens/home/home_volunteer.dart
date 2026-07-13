@@ -74,7 +74,9 @@ class _HomeVolunteerScreenState extends State<HomeVolunteerScreen> {
                 ]),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
+            const Align(alignment: Alignment.centerLeft, child: RoleBadge(role: AppRole.relawan)),
+            const SizedBox(height: 10),
             Text('Halo, $name!', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
             FutureBuilder<List<EventItem>>(
               future: _future,

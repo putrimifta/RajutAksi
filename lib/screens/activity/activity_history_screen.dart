@@ -23,11 +23,24 @@ class ActivityHistoryScreen extends StatefulWidget {
 class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
   late String _role;
   String _filter = 'Semua';
+  bool _searchOpen = false;
+  String _searchQuery = '';
+  final _searchCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _role = SupabaseService.instance.currentProfile?.activeRole ?? AppRole.relawan;
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _searchOpen = !_searchOpen;
+      if (!_searchOpen) {
+        _searchCtrl.clear();
+        _searchQuery = '';
+      }
+    });
   }
 
   @override
@@ -51,12 +64,42 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
                       SizedBox(width: 6),
                       Text('RajutAksi', style: TextStyle(color: AppColors.primary, fontSize: 20, fontWeight: FontWeight.bold)),
                     ]),
-                    const Icon(Icons.search, color: AppColors.textDark),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: _toggleSearch,
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(_searchOpen ? Icons.close : Icons.search, color: AppColors.textDark),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
                 const Text('Riwayat Aktivitas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 Text(_subtitleForRole(_role), style: const TextStyle(color: AppColors.textGrey, fontSize: 12.5)),
+                if (_searchOpen) ...[
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _searchCtrl,
+                    autofocus: true,
+                    onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
+                    decoration: InputDecoration(
+                      hintText: 'Cari aktivitas...',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.close, size: 18),
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      fillColor: AppColors.surface,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 SizedBox(
                   height: 38,
@@ -115,11 +158,11 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
   Widget _buildBodyForRole(String role) {
     switch (role) {
       case AppRole.organisasi:
-        return _OrganizerActivityList(filter: _filter);
+        return _OrganizerActivityList(filter: _filter, searchQuery: _searchQuery);
       case AppRole.sponsor:
-        return _SponsorActivityList(filter: _filter);
+        return _SponsorActivityList(filter: _filter, searchQuery: _searchQuery);
       default:
-        return _VolunteerActivityList(filter: _filter);
+        return _VolunteerActivityList(filter: _filter, searchQuery: _searchQuery);
     }
   }
 }
@@ -129,7 +172,8 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
 // ---------------------------------------------------------------------------
 class _VolunteerActivityList extends StatefulWidget {
   final String filter;
-  const _VolunteerActivityList({required this.filter});
+  final String searchQuery;
+  const _VolunteerActivityList({required this.filter, this.searchQuery = ''});
 
   @override
   State<_VolunteerActivityList> createState() => _VolunteerActivityListState();
@@ -159,13 +203,25 @@ class _VolunteerActivityListState extends State<_VolunteerActivityList> {
             final target = {'Pending': 'pending', 'Disetujui': 'approved', 'Selesai': 'completed'}[widget.filter];
             items = items.where((e) => e['status'] == target).toList();
           }
+          if (widget.searchQuery.isNotEmpty) {
+            items = items.where((e) {
+              final event = e['event'] as Map<String, dynamic>?;
+              final title = (event?['title'] as String? ?? '').toLowerCase();
+              return title.contains(widget.searchQuery);
+            }).toList();
+          }
           if (items.isEmpty) {
             return ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-              children: const [
+              children: [
                 Center(
-                  child: Text('Belum ada kegiatan yang kamu ikuti.\nYuk cari kegiatan di halaman Home!',
-                      textAlign: TextAlign.center, style: TextStyle(color: AppColors.textGrey)),
+                  child: Text(
+                    widget.searchQuery.isNotEmpty
+                        ? 'Tidak ada hasil untuk "${widget.searchQuery}"'
+                        : 'Belum ada kegiatan yang kamu ikuti.\nYuk cari kegiatan di halaman Home!',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.textGrey),
+                  ),
                 ),
               ],
             );
@@ -258,7 +314,8 @@ class _VolunteerActivityListState extends State<_VolunteerActivityList> {
 // ---------------------------------------------------------------------------
 class _OrganizerActivityList extends StatefulWidget {
   final String filter;
-  const _OrganizerActivityList({required this.filter});
+  final String searchQuery;
+  const _OrganizerActivityList({required this.filter, this.searchQuery = ''});
 
   @override
   State<_OrganizerActivityList> createState() => _OrganizerActivityListState();
@@ -290,13 +347,21 @@ class _OrganizerActivityListState extends State<_OrganizerActivityList> {
             final target = {'Published': 'published', 'Draft': 'draft', 'Selesai': 'done'}[widget.filter];
             items = items.where((e) => e.status == target).toList();
           }
+          if (widget.searchQuery.isNotEmpty) {
+            items = items.where((e) => e.title.toLowerCase().contains(widget.searchQuery)).toList();
+          }
           if (items.isEmpty) {
             return ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-              children: const [
+              children: [
                 Center(
-                  child: Text('Belum ada event yang kamu buat.\nYuk buat event pertamamu dari halaman Home!',
-                      textAlign: TextAlign.center, style: TextStyle(color: AppColors.textGrey)),
+                  child: Text(
+                    widget.searchQuery.isNotEmpty
+                        ? 'Tidak ada hasil untuk "${widget.searchQuery}"'
+                        : 'Belum ada event yang kamu buat.\nYuk buat event pertamamu dari halaman Home!',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.textGrey),
+                  ),
                 ),
               ],
             );
@@ -358,7 +423,8 @@ class _OrganizerActivityListState extends State<_OrganizerActivityList> {
 // ---------------------------------------------------------------------------
 class _SponsorActivityList extends StatefulWidget {
   final String filter;
-  const _SponsorActivityList({required this.filter});
+  final String searchQuery;
+  const _SponsorActivityList({required this.filter, this.searchQuery = ''});
 
   @override
   State<_SponsorActivityList> createState() => _SponsorActivityListState();
@@ -388,13 +454,25 @@ class _SponsorActivityListState extends State<_SponsorActivityList> {
             final target = {'Pending': 'pending', 'Diterima': 'accepted', 'Ditolak': 'rejected'}[widget.filter];
             items = items.where((e) => e['status'] == target).toList();
           }
+          if (widget.searchQuery.isNotEmpty) {
+            items = items.where((e) {
+              final event = e['event'] as Map<String, dynamic>?;
+              final title = (event?['title'] as String? ?? '').toLowerCase();
+              return title.contains(widget.searchQuery);
+            }).toList();
+          }
           if (items.isEmpty) {
             return ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-              children: const [
+              children: [
                 Center(
-                  child: Text('Belum ada penawaran sponsor yang kamu ajukan.\nCari proyek yang butuh sponsor di halaman Home!',
-                      textAlign: TextAlign.center, style: TextStyle(color: AppColors.textGrey)),
+                  child: Text(
+                    widget.searchQuery.isNotEmpty
+                        ? 'Tidak ada hasil untuk "${widget.searchQuery}"'
+                        : 'Belum ada penawaran sponsor yang kamu ajukan.\nCari proyek yang butuh sponsor di halaman Home!',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.textGrey),
+                  ),
                 ),
               ],
             );
@@ -467,9 +545,7 @@ class _SponsorActivityListState extends State<_SponsorActivityList> {
 }
 
 // ---------------------------------------------------------------------------
-// KARTU RIWAYAT PENAWARAN SPONSOR — dibuat lebih detail & mudah dipahami:
-// nominal ditampilkan lengkap (bukan disingkat), ada tanggal pengajuan,
-// dan penjelasan singkat apa arti status saat ini.
+// KARTU RIWAYAT PENAWARAN SPONSOR
 // ---------------------------------------------------------------------------
 class _SponsorshipCard extends StatelessWidget {
   final EventItem event;
@@ -534,8 +610,6 @@ class _SponsorshipCard extends StatelessWidget {
                   style: const TextStyle(fontSize: 11.5, color: AppColors.textGrey),
                 ),
                 const SizedBox(height: 12),
-                // Kotak nominal — dibuat menonjol supaya sponsor langsung
-                // tahu berapa yang mereka tawarkan tanpa harus menghitung sendiri.
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -593,7 +667,7 @@ class _SponsorshipCard extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// KARTU AKTIVITAS + TOMBOL CETAK SERTIFIKAT (khusus relawan yang statusnya "Selesai")
+// KARTU AKTIVITAS + TOMBOL CETAK SERTIFIKAT
 // ---------------------------------------------------------------------------
 class _ActivityCardWithCertificate extends StatelessWidget {
   final String title;

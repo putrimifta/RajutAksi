@@ -67,12 +67,25 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 stream: _stream,
                 builder: (context, snap) {
                   if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-                  final messages = snap.data!;
+
+                  // Urutkan pesan dari yang paling lama ke paling baru
+                  final messages = List<Map<String, dynamic>>.from(snap.data!)
+                    ..sort((a, b) {
+                      final ta = DateTime.tryParse(a['created_at'] ?? '') ?? DateTime.now();
+                      final tb = DateTime.tryParse(b['created_at'] ?? '') ?? DateTime.now();
+                      return ta.compareTo(tb);
+                    });
+
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (_scrollCtrl.hasClients) {
-                      _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
+                      _scrollCtrl.animateTo(
+                        _scrollCtrl.position.maxScrollExtent,
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOut,
+                      );
                     }
                   });
+
                   return ListView.builder(
                     controller: _scrollCtrl,
                     padding: const EdgeInsets.all(16),

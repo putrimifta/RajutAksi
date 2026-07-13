@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../core/app_theme.dart';
+import '../models/app_models.dart';
 
 /// Avatar bulat dengan fallback inisial nama jika tidak ada foto
 class AppAvatar extends StatelessWidget {
@@ -40,6 +41,47 @@ class AppBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
       child: Text(text, style: TextStyle(color: textColor, fontSize: 12, fontWeight: FontWeight.w600)),
+    );
+  }
+}
+
+/// Badge kecil penanda peran aktif, ditampilkan di header setiap layar Home
+/// supaya user langsung tahu sedang berada di mode Relawan/Organisasi/Sponsor
+/// tanpa harus buka Profile dulu. Semua peran memakai warna oranye yang sama
+/// supaya konsisten secara visual — bedanya hanya label dan ikon.
+class RoleBadge extends StatelessWidget {
+  final String role;
+  const RoleBadge({super.key, required this.role});
+
+  @override
+  Widget build(BuildContext context) {
+    late final String label;
+    late final IconData icon;
+    const color = AppColors.accent;
+    switch (role) {
+      case AppRole.organisasi:
+        label = 'Mode Organisasi';
+        icon = Icons.apartment_outlined;
+        break;
+      case AppRole.sponsor:
+        label = 'Mode Sponsor';
+        icon = Icons.workspace_premium_outlined;
+        break;
+      default:
+        label = 'Mode Relawan';
+        icon = Icons.volunteer_activism_outlined;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: Colors.white),
+          const SizedBox(width: 5),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+        ],
+      ),
     );
   }
 }
